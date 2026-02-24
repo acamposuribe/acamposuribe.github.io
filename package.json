@@ -1,0 +1,21 @@
+{
+  "name": "dpa_web",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "rollup --config -w"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@acamposuribe/brush": "^0.0.8-alpha"
+  },
+  "devDependencies": {
+    "@rollup/plugin-html": "^2.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.40.1",
+    "rollup-plugin-cleanup": "^3.2.1"
+  }
+}
