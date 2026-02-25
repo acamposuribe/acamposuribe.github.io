@@ -588,7 +588,7 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false) {
   const fillDY = brush.random(-25, 25) * scale * dispMag;
   const fillJitter = jitter * 2.5;
   const hFill = outline
-    .filter((_, i) => i === 0 || i === outline.length - 1 || brush.random(1) > 0.67)
+    .filter((_, i) => i === 0 || i === outline.length - 1 || brush.random(1) > 0.75)
     .map(([px, py]) => {
       const tx = (px - cx) * scale + brush.random(-fillJitter, fillJitter);
       const ty = (py - cy) * scale * 1.5 + brush.random(-fillJitter, fillJitter);
@@ -600,7 +600,7 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false) {
 
   // Mutually exclusive: a hand either fills or hatches, never both
   const doFill  = brush.random(1) > 0.75 && handBrush !== "marker";
-  const doErase = !doFill && brush.random(1) > 0.5;
+  const doErase = !doFill && brush.random(1) > 0.5  && handBrush !== "marker";
   const doHatch = !doFill && handBrush !== "marker" && brush.random(1) > 0.65;
 
   const displacedPol = new brush.Polygon(hFill); // fill / erase only
@@ -691,7 +691,7 @@ function drawBackgroundShapes() {
   const PAD = 200; // minimum whitespace gap between shapes
 
   // Insert interpolated points every ~step px along each edge of a closed polygon
-  const subdivide = (pts, step = 120) => {
+  const subdivide = (pts, step = 150) => {
     const result = [];
     for (let i = 0; i < pts.length; i++) {
       const [x1, y1] = pts[i];
@@ -708,8 +708,8 @@ function drawBackgroundShapes() {
   const cornerBlock = () => {
     const bw = brush.random(w * 0.15, w * 0.55);
     const bh = brush.random(h * 0.15, h * 0.55);
-    const ox = brush.random(1) > 0.5 ? 0 : w - bw;
-    const oy = brush.random(1) > 0.5 ? 0 : h - bh;
+    const ox = brush.random(1) > 0.5 ? brush.random(-50,80) : w - bw - brush.random(-50,80);
+    const oy = brush.random(1) > 0.5 ? brush.random(-50,80) : h - bh - brush.random(-50,80);
     return { curved: false, pts: subdivide([
       [ox,       oy      ],
       [ox + bw,  oy      ],
@@ -720,20 +720,20 @@ function drawBackgroundShapes() {
 
   const hband = () => {
     const y  = brush.random(h * 0.15, h * 0.80);
-    const ht = brush.random(h * 0.06, h * 0.15);
+    const ht = brush.random(h * 0.15, h * 0.2);
     return { curved: false, pts: subdivide([
-      [0,        y                             ],
+      [-20,        y                             ],
       [w * 0.35, y      + brush.random(-30, 30)],
-      [w,        y      + brush.random(-20, 20)],
-      [w,        y + ht                        ],
-      [w * 0.65, y + ht + brush.random(-30, 30)],
-      [0,        y + ht + brush.random(-20, 20)],
+      [w * 0.66,        y      + brush.random(-20, 20)],
+      [w * 0.65,        y + ht                        ],
+      [w * 0.35, y + ht + brush.random(-30, 30)],
+      [-20,        y + ht + brush.random(-20, 20)],
     ]) };
   };
 
   const vband = () => {
     const x  = brush.random(w * 0.15, w * 0.80);
-    const wt = brush.random(w * 0.04, w * 0.10);
+    const wt = brush.random(w * 0.1, w * 0.15);
     return { curved: false, pts: subdivide([
       [x,                              0        ],
       [x + wt,                         0        ],
@@ -744,7 +744,7 @@ function drawBackgroundShapes() {
     ]) };
   };
 
-  const band = () => vband();
+  const band = () => brush.random() < 0.5 ? hband() : vband();
 
   const blob = () => {
     const cx = brush.random(w * 0.15, w * 0.85);
@@ -784,10 +784,11 @@ function drawBackgroundShapes() {
     }
 
     brush.fillStyle(color, 150);
-    brush.fillBleed(0.2);
+    brush.fillBleed(0.15);
     brush.fillTexture(0.3, 0.35);
     brush.noStroke();
-    brush.noHatch();
+    brush.hatchStyle("spray", color, 3);
+    brush.hatch(10, 0);
     const curvature = shape.curved ? brush.random(0.6, 1) : 0;
     brush.beginPath(curvature);
     brush.moveTo(shape.pts[0][0], shape.pts[0][1]);
@@ -801,6 +802,19 @@ function drawBackgroundShapes() {
 brush.wiggle(1)
 
 drawBackgroundShapes();
+
+function drawTexture() {
+  brush.save()
+  brush.set("spray", "#69372b", 5)
+  const divide = 5;
+  for (let i = 0; i < divide; i++) {
+    brush.line(-50, i * (h / divide), w + 50, i * (h / divide));
+  }
+  brush.restore()
+}
+
+drawTexture();
+
 brush.draw();
 
 const draw = () => {
