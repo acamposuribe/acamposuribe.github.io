@@ -3,7 +3,7 @@ import * as brush from '@acamposuribe/brush';
 // Create main canvas and load library, plus config brushes
 let w = 3000, h = 1500;
 brush.createCanvas(w, h);
-brush.scaleBrushes(10);
+brush.scaleBrushes(7);
 
 // COLORS — Le Corbusier Polychromie Architecturale (1931 + 1959 collections)
 const bgPalette = [
@@ -669,7 +669,7 @@ function poissonSample(n, scales, width, height, maxAttempts = 80) {
 }
 
 const MAX_HANDS = 18;
-const handScales = Array.from({length: MAX_HANDS}, () => brush.random(0.2, 0.7));
+const handScales = Array.from({length: MAX_HANDS}, () => brush.random(0.15, 0.5));
 const positions = poissonSample(MAX_HANDS, handScales, w, h);
 let handCount = 0;
 
