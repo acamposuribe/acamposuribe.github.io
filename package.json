@@ -9,7 +9,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@acamposuribe/brush": "^0.0.8-alpha"
+    "@acamposuribe/brush": "^0.0.9-alpha"
   },
   "devDependencies": {
     "@rollup/plugin-html": "^2.0.0",

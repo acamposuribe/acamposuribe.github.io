@@ -1,9 +1,19 @@
 import * as brush from '@acamposuribe/brush';
 
 // Create main canvas and load library, plus config brushes
-let w = 3000, h = 1500;
+// Physical pixel dimensions account for high-DPI screens
+const pixelRatio = window.devicePixelRatio || 1;
+let w = Math.floor(window.innerWidth  * pixelRatio);
+let h = Math.floor(window.innerHeight * pixelRatio);
 brush.createCanvas(w, h);
-brush.scaleBrushes(7);
+
+// canvasScale: ratio of physical canvas width to the 3000px reference design.
+// Must use physical pixels (w), not logical (w/pixelRatio), because all drawing
+// operates in physical pixel space. CSS display handles the pixelRatio correction
+// automatically, so this keeps the composition proportionally identical on any
+// screen size or device density.
+const canvasScale = w / 3000;
+brush.scaleBrushes(12 * canvasScale);
 
 // COLORS — Le Corbusier Polychromie Architecturale (1931 + 1959 collections)
 const bgPalette = [
@@ -28,7 +38,7 @@ const palette = [
  "#6c2b3b", "#7facc6", 
   "#333230", "#d15c32", "#0e2d58",  "#f4bd48","#f4bd48","#f4bd48",
 ];
-const brushTypes = ["HB", "HB", "2B", "cpencil", "cpencil", "charcoal", "marker"];
+const brushTypes = ["HB", "HB", "2B", "cpencil", "cpencil", "charcoal"];
 
 const bgColor = brush.random(bgPalette);
 
@@ -539,7 +549,7 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false) {
   const cos = Math.cos(rotation);
   const sin = Math.sin(rotation);
 
-  brush.wiggle(brush.random(0.1, 4));
+  brush.wiggle(brush.random(0.1, 3));
 
   // One brush type per hand
   const handBrush = brush.random(brushTypes);
@@ -584,8 +594,8 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false) {
 
   // Fill shape: displaced, ~1/3 of points kept, extra distortion, also rotated
   const dispMag = brush.random(2, 6);
-  const fillDX = brush.random(-40, 40) * scale * dispMag;
-  const fillDY = brush.random(-25, 25) * scale * dispMag;
+  const fillDX = brush.random(-20, 20) * scale * dispMag;
+  const fillDY = brush.random(-20, 20) * scale * dispMag;
   const fillJitter = jitter * 2.5;
   const hFill = outline
     .filter((_, i) => i === 0 || i === outline.length - 1 || brush.random(1) > 0.75)
@@ -599,9 +609,9 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false) {
     });
 
   // Mutually exclusive: a hand either fills or hatches, never both
-  const doFill  = brush.random(1) > 0.75 && handBrush !== "marker";
-  const doErase = !doFill && brush.random(1) > 0.5  && handBrush !== "marker";
-  const doHatch = !doFill && handBrush !== "marker" && brush.random(1) > 0.65;
+  const doFill  = brush.random(1) > 0.75;
+  const doErase = !doFill && brush.random(1) > 0.2;
+  const doHatch = !doFill && brush.random(1) > 0.75;
 
   const displacedPol = new brush.Polygon(hFill); // fill / erase only
   const normalPol    = new brush.Polygon(h);     // hatch + outline
@@ -612,41 +622,62 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false) {
     displacedPol.erase();
     brush.noErase();
     brush.fillStyle(fillColor, 100);
-    brush.fillBleed(brush.random(0.1, 0.25));
-    brush.fillTexture(brush.random(0.3, 0.7), 0.3);
+    brush.fillBleed(brush.random(0.05, 0.15));
+    brush.fillTexture(brush.random(0.1, 0.4), 0.4);
     displacedPol.fill();
     brush.noFill();
   } else if (doErase) {
     brush.erase(bgColor, 255);
-    displacedPol.erase();
+    brush.spline(hFill, 0.25);
     brush.noErase();
   }
 
   // 2. Hatch the normal polygon (outlineColor)
   if (doHatch) {
-    brush.hatch(15, brush.random(-Math.PI / 2, 0), { rand: 0.05, gradient: brush.random(0.1,0.5) });
-    brush.hatchStyle("2H", outlineColor, 1.5);
-    normalPol.hatch();
+    brush.hatch(19 * canvasScale, brush.random(-Math.PI / 2, 0), { rand: 0.15, continuous: true, gradient: brush.random(0.1,0.5) });
+    brush.hatchStyle(handBrush, outlineColor, 1);
+    brush.spline(h, 1)
+    brush.noHatch();
+
+    // And now erase the noirmal polygon
+    brush.erase(fillColor, 80);
+    displacedPol.erase();
+    brush.noErase();
   }
 
   // 3. Outline the normal polygon (outlineColor)
   brush.set(handBrush, outlineColor, 1);
-  brush.spline(h, 0)
+  brush.spline(h, 1)
 
   // 4. Interior lines — each randomly included
-  brush.set(handBrush, outlineColor, 1);
   for (const [pts, threshold] of interiors) {
     if (full || brush.random(1) > threshold) brush.spline(tp(pts), 0.5);
   }
 
+  // Sometimes hatch interior details
+  if (doHatch && brush.random(0,1) > 0.35) {
+    brush.hatch(10 * canvasScale, brush.random(-Math.PI / 2, 0), { rand: 0.15, continuous: true, gradient: brush.random(0.1,0.5) });
+    brush.hatchStyle(handBrush, outlineColor, 1);
+    for (const [pts, threshold] of interiors) {
+      if (full || brush.random(1) > threshold) {
+        const pol = new brush.Polygon(tp(pts));
+        pol.hatch();
+      }
+    }
+    brush.noHatch();
+  }
+  
+
   brush.noField();
 }
 
-// Bounding-circle radius of the hand geometry at scale 1
-// hand1 bbox: 1436 × 706 → half-diagonal ≈ 800
-const HAND_RADIUS = Math.sqrt((1436 * 0.5) ** 2 + (706 * 0.5) ** 2);
+// Bounding-circle radius at scale 1, accounting for the 1.5× y-stretch in transformPoints.
+// hand1 bbox: 1436 × (706 × 1.5) → half-diagonal ≈ 892
+const HAND_RADIUS = Math.sqrt((1436 * 0.5) ** 2 + (706 * 1.5 * 0.5) ** 2);
 
-// Scale-aware Poisson sampling: minDist per pair = sum of their visual radii × 0.5
+// Scale-aware Poisson sampling.
+// Uses 0.7 × sum-of-radii: allows slight touching at edges but prevents heavy overlap.
+// Full non-overlap (× 1.0) is geometrically impossible for 15 variable-size hands on most screens.
 function poissonSample(n, scales, width, height, maxAttempts = 80) {
   const points = [];
   for (let i = 0; i < n; i++) {
@@ -657,7 +688,7 @@ function poissonSample(n, scales, width, height, maxAttempts = 80) {
       const y = brush.random(height * 0.05, height * 0.95);
       let score = Infinity;
       for (let j = 0; j < points.length; j++) {
-        const required = (HAND_RADIUS * scales[i] + HAND_RADIUS * scales[j]) * 0.5;
+        const required = (HAND_RADIUS * scales[i] + HAND_RADIUS * scales[j]) * 0.7;
         score = Math.min(score, Math.hypot(x - points[j][0], y - points[j][1]) - required);
       }
       if (score >= 0) { best = [x, y]; break; }
@@ -668,8 +699,8 @@ function poissonSample(n, scales, width, height, maxAttempts = 80) {
   return points;
 }
 
-const MAX_HANDS = 18;
-const handScales = Array.from({length: MAX_HANDS}, () => brush.random(0.15, 0.5));
+const MAX_HANDS = 15;
+const handScales = Array.from({length: MAX_HANDS}, () => brush.random(0.25, 0.55) * canvasScale);
 const positions = poissonSample(MAX_HANDS, handScales, w, h);
 let handCount = 0;
 
@@ -677,21 +708,17 @@ brush.background(bgColor);
 
 // Background polygonal shapes — drawn once, behind all hands
 function drawBackgroundShapes() {
-  const count = Math.floor(brush.random(2, 5));
-  const usedColors = new Set();
-
-  // Bounding box helpers for overlap detection
-  const bbox = pts => {
-    const xs = pts.map(([x]) => x), ys = pts.map(([,y]) => y);
-    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
-  };
-  const expand = ([x1,y1,x2,y2], pad) => [x1-pad, y1-pad, x2+pad, y2+pad];
-  const overlaps = ([ax1,ay1,ax2,ay2], [bx1,by1,bx2,by2]) =>
-    !(ax2 < bx1 || bx2 < ax1 || ay2 < by1 || by2 < ay1);
-  const PAD = 200; // minimum whitespace gap between shapes
+  // Pick 2–3 colors once and reuse across all shapes for a coherent palette
+  const colorCount  = Math.floor(brush.random(2, 4));
+  const shapeColors = [];
+  const usedSet     = new Set();
+  while (shapeColors.length < colorCount) {
+    const c = brush.random(palette);
+    if (!usedSet.has(c)) { usedSet.add(c); shapeColors.push(c); }
+  }
 
   // Insert interpolated points every ~step px along each edge of a closed polygon
-  const subdivide = (pts, step = 150) => {
+  const subdivide = (pts, step = 40) => {
     const result = [];
     for (let i = 0; i < pts.length; i++) {
       const [x1, y1] = pts[i];
@@ -704,98 +731,100 @@ function drawBackgroundShapes() {
     return result;
   };
 
-  // Shape generators — return { pts, curved }
-  const cornerBlock = () => {
-    const bw = brush.random(w * 0.15, w * 0.55);
-    const bh = brush.random(h * 0.15, h * 0.55);
-    const ox = brush.random(1) > 0.5 ? brush.random(-50,80) : w - bw - brush.random(-50,80);
-    const oy = brush.random(1) > 0.5 ? brush.random(-50,80) : h - bh - brush.random(-50,80);
-    return { curved: false, pts: subdivide([
-      [ox,       oy      ],
-      [ox + bw,  oy      ],
-      [ox + bw,  oy + bh ],
-      [ox,       oy + bh ],
-    ]) };
+  // Shape makers — centered at (cx, cy)
+  const makeRect = (cx, cy) => {
+    const rw = w * brush.random(0.15, 0.60);
+    const rh = h * brush.random(0.17, 0.65);
+    const x = cx - rw / 2, y = cy - rh / 2;
+    return { curved: false, pts: subdivide([[x,y],[x+rw,y],[x+rw,y+rh],[x,y+rh]]) };
   };
-
-  const hband = () => {
-    const y  = brush.random(h * 0.15, h * 0.80);
-    const ht = brush.random(h * 0.15, h * 0.2);
-    return { curved: false, pts: subdivide([
-      [-20,        y                             ],
-      [w * 0.35, y      + brush.random(-30, 30)],
-      [w * 0.66,        y      + brush.random(-20, 20)],
-      [w * 0.65,        y + ht                        ],
-      [w * 0.35, y + ht + brush.random(-30, 30)],
-      [-20,        y + ht + brush.random(-20, 20)],
-    ]) };
-  };
-
-  const vband = () => {
-    const x  = brush.random(w * 0.15, w * 0.80);
-    const wt = brush.random(w * 0.1, w * 0.15);
-    return { curved: false, pts: subdivide([
-      [x,                              0        ],
-      [x + wt,                         0        ],
-      [x + wt + brush.random(-20, 20), h * 0.35 ],
-      [x + wt + brush.random(-20, 20), h        ],
-      [x       + brush.random(-20, 20), h        ],
-      [x       + brush.random(-20, 20), h * 0.65 ],
-    ]) };
-  };
-
-  const band = () => brush.random() < 0.5 ? hband() : vband();
-
-  const blob = () => {
-    const cx = brush.random(w * 0.15, w * 0.85);
-    const cy = brush.random(h * 0.15, h * 0.85);
-    const rx = brush.random(w * 0.06, w * 0.16);
-    const ry = brush.random(h * 0.07, h * 0.16);
+  const makeBlob = (cx, cy) => {
+    const rx = w * brush.random(0.02, 0.14);
+    const ry = h * brush.random(0.03, 0.14);
     return { curved: true, pts: Array.from({length: 8}, (_, i) => {
       const a = (i / 8) * Math.PI * 2;
-      return [
-        cx + Math.cos(a) * rx * brush.random(0.75, 1.25),
-        cy + Math.sin(a) * ry * brush.random(0.75, 1.25),
-      ];
+      return [cx + Math.cos(a)*rx*brush.random(0.7,1.3), cy + Math.sin(a)*ry*brush.random(0.7,1.3)];
     })};
   };
+  const makers = [makeRect, makeRect, makeRect, makeBlob, makeBlob];
+  const randomMaker = () => makers[Math.floor(brush.random(makers.length))];
 
-  const placed = [];
-  let bandUsed = false;
+  // --- Build position list ---
+  const centers = []; // [cx, cy] for all shapes
 
-  for (let i = 0; i < count; i++) {
-    const pool = bandUsed
-      ? [cornerBlock, cornerBlock, blob]
-      : [cornerBlock, cornerBlock, band, blob];
-    const genFn = pool[Math.floor(brush.random(pool.length))];
-    if (genFn === band) bandUsed = true;
+  // 1. One tight cluster of 2–3 shapes
+  const clusterSize   = Math.floor(brush.random(2, 3));
+  const clusterCX     = brush.random(w * 0.15, w * 0.85);
+  const clusterCY     = brush.random(h * 0.15, h * 0.85);
+  const clusterSpread = Math.min(w, h) * 0.26;
+  for (let i = 0; i < clusterSize; i++) {
+    centers.push([
+      clusterCX + brush.random(-clusterSpread, clusterSpread),
+      clusterCY + brush.random(-clusterSpread, clusterSpread),
+    ]);
+  }
 
-    let color;
-    do { color = brush.random(palette); } while (usedColors.has(color));
-    usedColors.add(color);
+  // 2. Remaining shapes Poisson-distributed away from each other and the cluster
+  const freeCount = Math.floor(brush.random(2, 6));
+  const MIN_DIST  = Math.min(w, h) * 0.35;
+  for (let i = 0; i < freeCount; i++) {
+    let best = null, bestScore = -Infinity;
+    for (let attempt = 0; attempt < 60; attempt++) {
+      const cx = brush.random(- w * 0.05, w * 1.05);
+      const cy = brush.random(- h * 0.05, h * 1.05);
+      let score = Infinity;
+      for (const [ax, ay] of centers) score = Math.min(score, Math.hypot(cx-ax, cy-ay) - MIN_DIST);
+      if (score >= 0) { best = [cx, cy]; break; }
+      if (score > bestScore) { bestScore = score; best = [cx, cy]; }
+    }
+    centers.push(best);
+  }
 
-    // Try up to 20 times to find a non-overlapping position (with padding gap)
-    let shape;
-    for (let attempt = 0; attempt < 20; attempt++) {
-      shape = genFn();
-      const bb = bbox(shape.pts);
-      if (!placed.some(b => overlaps(expand(bb, PAD), b))) { placed.push(bb); break; }
-      if (attempt === 19) placed.push(bbox(shape.pts));
+  // --- Draw all shapes ---
+  for (const [cx, cy] of centers) {
+    const shape = randomMaker()(cx, cy);
+
+    const color = brush.random(shapeColors);
+
+    function drawShape () {
+      const curvature = shape.curved ? brush.random(0.6, 1) : 0;
+      brush.beginPath(curvature);
+      brush.moveTo(shape.pts[0][0], shape.pts[0][1]);
+      for (let j = 1; j < shape.pts.length; j++) brush.lineTo(shape.pts[j][0], shape.pts[j][1]);
+      brush.closePath();
+      brush.endPath();
     }
 
-    brush.fillStyle(color, 150);
-    brush.fillBleed(0.15);
-    brush.fillTexture(0.3, 0.35);
-    brush.noStroke();
+
+brush.noStroke();
+
+    let filling = brush.random(1) > 0.5;
+
+
+    brush.erase(bgColor, 100);
+    if (!filling) {
+      brush.erase(color, 100);
+    }
+    drawShape();
+    brush.noErase();
+    brush.draw();
+
+    
+
+    if (filling) {
+      brush.fillStyle(color, 150);
+      brush.fillBleed(0.05);
+      brush.fillTexture(0.1, 0.15);
+    }
+
+    
+    brush.hatch(40 * canvasScale,0);
     brush.hatchStyle("spray", color, 3);
-    brush.hatch(10, 0);
-    const curvature = shape.curved ? brush.random(0.6, 1) : 0;
-    brush.beginPath(curvature);
-    brush.moveTo(shape.pts[0][0], shape.pts[0][1]);
-    for (let j = 1; j < shape.pts.length; j++) brush.lineTo(shape.pts[j][0], shape.pts[j][1]);
-    brush.closePath();
-    brush.endPath();
+    drawShape();
     brush.noFill();
+    brush.noHatch();
+
+    brush.draw();
   }
 }
 
@@ -805,15 +834,16 @@ drawBackgroundShapes();
 
 function drawTexture() {
   brush.save()
-  brush.set("spray", "#69372b", 5)
-  const divide = 5;
+  brush.set("spray", "#d28b7a", 30 * canvasScale)
+  const divide = 15;
   for (let i = 0; i < divide; i++) {
     brush.line(-50, i * (h / divide), w + 50, i * (h / divide));
   }
   brush.restore()
 }
 
-drawTexture();
+brush.wiggle(0)
+
 
 brush.draw();
 
@@ -823,6 +853,8 @@ const draw = () => {
   const isLast = handCount === MAX_HANDS - 1;
   handCount++;
   drawHand(x, y, handScales[handCount - 1], isLast);
+
+  if (handCount -1 === 0) drawTexture();
 };
 
 brush.frameRate(5);
