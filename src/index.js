@@ -613,7 +613,7 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false) {
     brush.noErase();
     brush.fillStyle(fillColor, 100);
     brush.fillBleed(brush.random(0.1, 0.25));
-    brush.fillTexture(brush.random(0.3, 0.7), 0.45);
+    brush.fillTexture(brush.random(0.3, 0.7), 0.3);
     displacedPol.fill();
     brush.noFill();
   } else if (doErase) {
