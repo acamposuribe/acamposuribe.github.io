@@ -706,8 +706,8 @@ function drawBackgroundShapes() {
 
   // Shape generators — return { pts, curved }
   const cornerBlock = () => {
-    const bw = brush.random(w * 0.15, w * 0.40);
-    const bh = brush.random(h * 0.15, h * 0.45);
+    const bw = brush.random(w * 0.15, w * 0.25);
+    const bh = brush.random(h * 0.15, h * 0.25);
     const ox = brush.random(1) > 0.5 ? 0 : w - bw;
     const oy = brush.random(1) > 0.5 ? 0 : h - bh;
     return { curved: false, pts: subdivide([
@@ -784,7 +784,7 @@ function drawBackgroundShapes() {
     }
 
     brush.fillStyle(color, 255);
-    brush.fillBleed(0.0001);
+    brush.fillBleed(0.2);
     brush.fillTexture(0.3, 0.4);
     brush.noStroke();
     brush.noHatch();
@@ -798,7 +798,7 @@ function drawBackgroundShapes() {
   }
 }
 
-brush.wiggle(0.1)
+brush.wiggle(1)
 
 drawBackgroundShapes();
 brush.draw();
