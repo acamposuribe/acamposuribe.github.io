@@ -706,8 +706,8 @@ function drawBackgroundShapes() {
 
   // Shape generators — return { pts, curved }
   const cornerBlock = () => {
-    const bw = brush.random(w * 0.15, w * 0.25);
-    const bh = brush.random(h * 0.15, h * 0.25);
+    const bw = brush.random(w * 0.15, w * 0.55);
+    const bh = brush.random(h * 0.15, h * 0.55);
     const ox = brush.random(1) > 0.5 ? 0 : w - bw;
     const oy = brush.random(1) > 0.5 ? 0 : h - bh;
     return { curved: false, pts: subdivide([
@@ -744,7 +744,7 @@ function drawBackgroundShapes() {
     ]) };
   };
 
-  const band = () => brush.random(1) > 0.5 ? hband() : vband();
+  const band = () => vband();
 
   const blob = () => {
     const cx = brush.random(w * 0.15, w * 0.85);
@@ -783,9 +783,9 @@ function drawBackgroundShapes() {
       if (attempt === 19) placed.push(bbox(shape.pts));
     }
 
-    brush.fillStyle(color, 255);
+    brush.fillStyle(color, 150);
     brush.fillBleed(0.2);
-    brush.fillTexture(0.3, 0.4);
+    brush.fillTexture(0.3, 0.35);
     brush.noStroke();
     brush.noHatch();
     const curvature = shape.curved ? brush.random(0.6, 1) : 0;
