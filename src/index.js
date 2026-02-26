@@ -92,17 +92,13 @@ const HAND_WEIGHTS       = [1, 1.5, 1.5];    // relative pick weight for [hand1,
 const HAND_SCALE_MULT    = [1, 1.2, 2.5];  // per-hand scale multiplier  (normalises reference coords)
 const P_HAND_HATCH       = 0.75;         // probability hand gets hatched (when not filled)
 
-// Mobile performance
-const HATCH_DENSITY      = isMobile ? 3 : 1; // multiplies hatch step → fewer lines on mobile
-const MOBILE_MAX_HANDS   = isMobile ? 8 : Infinity; // cap hands on mobile to reduce peak memory
-
 // Scattered mode
 const MAX_HANDS          = 15;           // total hands drawn
 const HAND_SCALE_SCATTER = [0.25, 0.85]; // per-hand scale range (× canvasScale)
 const RECT_SCALE_W       = [0.25, 0.60]; // rect width  (fraction of canvas w)
 const RECT_SCALE_H       = [0.27, 0.65]; // rect height (fraction of canvas h)
 const BLOB_SCALE         = [0.05, 0.17]; // blob rx/ry  (fraction of canvas w/h)
-const P_HAND_FILL        = 0.25;         // probability hand gets a fill
+const P_HAND_FILL        = isMobile ? 0 : 0.25;         // probability hand gets a fill
 const P_HAND_ERASE       = 0.80;         // probability hand gets erased (when not filled)
 
 // Single-hand mode
@@ -531,7 +527,7 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false, { requireFi
 
   // 4. Hatch interior details
   if (doHatch) {
-    brush.hatch(10 * canvasScale * HATCH_DENSITY, brush.random(-Math.PI / 2, 0), { rand: 0.15, continuous: true, gradient: brush.random(0.1,0.5) });
+    brush.hatch(10 * canvasScale, brush.random(-Math.PI / 2, 0), { rand: 0.15, continuous: true, gradient: brush.random(0.1,0.5) });
     brush.hatchStyle(handBrush, outlineColor, 1);
     for (const [pts, threshold] of interiors) {
       if (full || brush.random(1) > threshold) {
@@ -572,9 +568,8 @@ function poissonSample(n, scales, width, height, maxAttempts = 80) {
   return points;
 }
 
-const effectiveMaxHands = Math.min(MAX_HANDS, MOBILE_MAX_HANDS);
-const handScales = Array.from({length: effectiveMaxHands}, () => brush.random(...HAND_SCALE_SCATTER) * canvasScale);
-const positions = poissonSample(effectiveMaxHands, handScales, w, h);
+const handScales = Array.from({length: MAX_HANDS}, () => brush.random(...HAND_SCALE_SCATTER) * canvasScale);
+const positions = poissonSample(MAX_HANDS, handScales, w, h);
 let handCount = 0;
 
 // Background polygonal shapes — drawn once, behind all hands
@@ -714,8 +709,10 @@ function drawBackgroundShapes() {
       brush.noErase();
     }
 
-    brush.hatch(40 * canvasScale * HATCH_DENSITY, Math.PI / 4, { gradient: 0.1 });
-    brush.hatchStyle("spray", color, 1);
+    if (!isMobile) {
+      brush.hatch(55 * canvasScale, Math.PI / 4, { gradient: 0.1 });
+      brush.hatchStyle("spray", color, 1.5);
+    }
     drawShape();
     brush.noFill();
     brush.noHatch();
@@ -774,8 +771,12 @@ function drawComposedScene() {
       brush.draw();
       brush.noErase();
     }
-    brush.hatch(20 * canvasScale * HATCH_DENSITY, Math.PI / 4, { gradient: 0.1 });
-    brush.hatchStyle("spray", color, 1.2);
+
+    if (!isMobile) {
+      brush.hatch(25 * canvasScale, Math.PI / 4, { gradient: 0.1 });
+      brush.hatchStyle("spray", color, 1.3);
+    }
+
     drawPoly(pts, curvature);
     brush.noFill();
     brush.draw();
@@ -900,7 +901,7 @@ const draw = () => {
       rotationRange: Math.PI / 10,
     });
   } else {
-    if (handCount >= effectiveMaxHands) { brush.noLoop(); return; }
+    if (handCount >= MAX_HANDS) { brush.noLoop(); return; }
     const [x, y] = positions[handCount];
     const isLast = handCount === MAX_HANDS - 1;
     handCount++;
@@ -908,5 +909,5 @@ const draw = () => {
   }
 };
 
-brush.frameRate(isMobile ? 8 : 15);
+brush.frameRate(15);
 brush.loop(draw);
