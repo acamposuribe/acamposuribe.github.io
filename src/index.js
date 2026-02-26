@@ -5,6 +5,14 @@ import * as brush from '@acamposuribe/brush';
 const pixelRatio = window.devicePixelRatio || 1;
 let w = Math.floor(window.innerWidth  * pixelRatio);
 let h = Math.floor(window.innerHeight * pixelRatio);
+// Ensure minimum 1500px on the smaller dimension, maintaining aspect ratio.
+// The canvas element is scaled back down by CSS to fill the window.
+const minDim = Math.min(w, h);
+if (minDim < 1500) {
+  const upscale = 1500 / minDim;
+  w = Math.floor(w * upscale);
+  h = Math.floor(h * upscale);
+}
 brush.createCanvas(w, h);
 
 // canvasScale: ratio of physical canvas width to the 3000px reference design.
@@ -1000,7 +1008,7 @@ function drawBackgroundShapes() {
       brush.noErase();
     }
     
-    brush.hatch(60 * canvasScale, Math.PI / 4);
+    brush.hatch(40 * canvasScale, Math.PI / 4, { gradient: 0.1 });
     brush.hatchStyle("spray", color, 1);
     drawShape();
     brush.noFill();
@@ -1102,8 +1110,8 @@ function drawComposedScene() {
       brush.draw();
       brush.noErase();
     }
-    brush.hatch(10 * canvasScale, Math.PI / 4, { gradient: 0.1 });
-    brush.hatchStyle("spray", color, 1);
+    brush.hatch(20 * canvasScale, Math.PI / 4, { gradient: 0.1 });
+    brush.hatchStyle("spray", color, 1.2);
     drawPoly(pts, curvature);
     brush.noFill();
     brush.draw();
@@ -1147,7 +1155,7 @@ function drawComposedScene() {
   const earthRefW   = 1890 - 147; // reference bounding-box width of all earthShapes
   const earthScale  = (skyX1 - skyX0) / earthRefW;
   const earthPosX   = (skyX0 + skyX1) / 2;
-  const earthPosY   = h * brush.random(0.65, 0.74);
+  const earthPosY   = h * brush.random(0.65, 0.70);
   const earthJitter = 2 * earthScale;
   const te = (pts) => transformPoints(pts, earthPosX, earthPosY, earthScale, earthJitter, 1, 0, earthShapeCX, earthShapeCY, 2.4);
 
