@@ -12,8 +12,8 @@ brush.createCanvas(w, h);
 // operates in physical pixel space. CSS display handles the pixelRatio correction
 // automatically, so this keeps the composition proportionally identical on any
 // screen size or device density.
-const canvasScale = w / 3000;
-brush.scaleBrushes(12 * canvasScale);
+const canvasScale = Math.min(w, h) / 3000;
+brush.scaleBrushes(10 * canvasScale);
 
 // COLORS — Le Corbusier Polychromie Architecturale (1931 + 1959 collections)
 const bgPalette = [
@@ -326,6 +326,219 @@ const hand2 = [
   [640, 561],
 ];
 
+// Erase shape for hand1
+const hand1EraseShape = [
+  [1864, 488],
+  [1838, 500],
+  [1810, 509],
+  [1781, 519],
+  [1755, 531],
+  [1729, 543],
+  [1703, 557],
+  [1677, 569],
+  [1648, 582],
+  [1619, 594],
+  [1591, 606],
+  [1559, 616],
+  [1531, 627],
+  [1499, 639],
+  [1468, 649],
+  [1439, 658],
+  [1411, 668],
+  [1382, 677],
+  [1351, 686],
+  [1317, 694],
+  [1286, 701],
+  [1254, 707],
+  [1220, 714],
+  [1189, 720],
+  [1158, 726],
+  [1126, 731],
+  [1090, 740],
+  [1056, 745],
+  [1025, 748],
+  [991, 752],
+  [957, 755],
+  [923, 759],
+  [892, 766],
+  [855, 771],
+  [824, 776],
+  [790, 780],
+  [759, 780],
+  [725, 780],
+  [694, 780],
+  [662, 771],
+  [636, 755],
+  [615, 726],
+  [597, 700],
+  [574, 660],
+  [561, 637],
+  [548, 611],
+  [535, 587],
+  [524, 561],
+  [514, 538],
+  [506, 516],
+  [493, 488],
+  [475, 450],
+  [454, 408],
+  [433, 368],
+  [420, 333],
+  [407, 306],
+  [396, 283],
+  [383, 262],
+  [375, 241],
+  [362, 220],
+  [349, 201],
+  [378, 212],
+  [407, 222],
+  [435, 234],
+  [464, 243],
+  [493, 252],
+  [522, 260],
+  [550, 269],
+  [581, 278],
+  [613, 285],
+  [641, 293],
+  [670, 302],
+  [699, 311],
+  [730, 319],
+  [759, 328],
+  [787, 340],
+  [803, 321],
+  [821, 302],
+  [845, 281],
+  [866, 262],
+  [889, 241],
+  [910, 222],
+  [931, 203],
+  [954, 186],
+  [973, 168],
+  [986, 188],
+  [986, 208],
+  [986, 231],
+  [988, 252],
+  [991, 273],
+  [999, 293],
+  [1012, 274],
+  [1022, 252],
+  [1040, 234],
+  [1064, 210],
+  [1077, 191],
+  [1080, 215],
+  [1080, 236],
+  [1080, 260],
+  [1085, 285],
+  [1090, 307],
+  [1113, 293],
+  [1124, 271],
+  [1140, 250],
+  [1150, 229],
+  [1163, 205],
+  [1173, 184],
+  [1181, 205],
+  [1186, 226],
+  [1197, 248],
+  [1202, 269],
+  [1210, 295],
+  [1215, 316],
+  [1220, 337],
+  [1228, 359],
+  [1231, 380],
+  [1236, 401],
+  [1239, 422],
+  [1244, 443],
+  [1249, 464],
+  [1254, 484],
+  [1278, 470],
+  [1304, 458],
+  [1335, 446],
+  [1372, 432],
+  [1400, 420],
+  [1432, 408],
+  [1458, 396],
+  [1484, 384],
+  [1518, 385],
+  [1549, 396],
+  [1578, 405],
+  [1606, 413],
+  [1635, 422],
+  [1666, 431],
+  [1695, 441],
+  [1724, 453],
+  [1752, 465],
+  [1781, 476],
+  [1812, 483],
+  [1836, 497],
+];
+
+// Erase shape for hand2
+const hand2EraseShape = [
+  [788, 530],
+  [752, 514],
+  [720, 494],
+  [692, 472],
+  [664, 452],
+  [636, 432],
+  [608, 412],
+  [576, 392],
+  [548, 372],
+  [520, 350],
+  [496, 328],
+  [476, 306],
+  [452, 284],
+  [436, 260],
+  [488, 268],
+  [532, 278],
+  [580, 284],
+  [628, 286],
+  [676, 290],
+  [720, 280],
+  [756, 260],
+  [788, 240],
+  [820, 262],
+  [844, 284],
+  [868, 306],
+  [884, 282],
+  [904, 260],
+  [924, 238],
+  [940, 262],
+  [944, 286],
+  [948, 310],
+  [980, 288],
+  [1004, 266],
+  [1020, 242],
+  [1036, 266],
+  [1048, 292],
+  [1068, 314],
+  [1112, 328],
+  [1164, 332],
+  [1212, 322],
+  [1260, 314],
+  [1308, 306],
+  [1356, 298],
+  [1400, 286],
+  [1448, 294],
+  [1496, 306],
+  [1540, 318],
+  [1508, 338],
+  [1468, 352],
+  [1428, 366],
+  [1392, 382],
+  [1352, 398],
+  [1312, 412],
+  [1272, 428],
+  [1232, 444],
+  [1192, 458],
+  [1140, 468],
+  [1092, 480],
+  [1048, 490],
+  [1000, 498],
+  [952, 504],
+  [904, 510],
+  [856, 518],
+  [808, 522],
+];
+
 // Hand2 interior details
 const hand2PalmLine1 = [
   [480, 400], [521, 397], [563, 390], [604, 381], [654, 371],
@@ -521,13 +734,13 @@ const hand2CX = 881,  hand2CY = 370; // x: 361–1401, y: 178–561
 
 // Translate, scale, rotate, and jitter a point array relative to the geometry center.
 // cx/cy are the shape's bounding-box center; cos/sin are pre-computed.
-function transformPoints(pts, x, y, scale, jitter, cos, sin, cx, cy) {
+function transformPoints(pts, x, y, scale, jitter, cos, sin, cx, cy, yStretch = 1.5) {
   return pts.map(([px, py]) => {
     const j = py < cy - 80
       ? jitter * 0.4                      // fingers: less jitter
       : jitter * brush.random(1.0, 3.0);  // palm + lower: much more
     const tx = (px - cx) * scale + brush.random(-j, j);
-    const ty = (py - cy) * scale * 1.5 + brush.random(-j, j);
+    const ty = (py - cy) * scale * yStretch + brush.random(-j, j);
     return [
       x + cos * tx - sin * ty,
       y + sin * tx + cos * ty,
@@ -535,7 +748,7 @@ function transformPoints(pts, x, y, scale, jitter, cos, sin, cx, cy) {
   });
 }
 
-function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false) {
+function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false, { forceErase = false, brushOverride = null, colorOverride = null, rotationRange = Math.PI / 7 } = {}) {
   const jitter = brush.random(1, 5) * scale;
 
   // Pick which hand shape to draw (full = always hand1)
@@ -545,17 +758,17 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false) {
   const cy       = useHand1 ? hand1CY : hand2CY;
 
   // Random rotation ±60°, pre-compute cos/sin once for all transforms
-  const rotation = brush.random(-Math.PI / 7, Math.PI / 7);
+  const rotation = brush.random(-rotationRange, rotationRange);
   const cos = Math.cos(rotation);
   const sin = Math.sin(rotation);
 
   brush.wiggle(brush.random(0.1, 3));
 
   // One brush type per hand
-  const handBrush = brush.random(brushTypes);
+  const handBrush = brushOverride ?? brush.random(brushTypes);
 
   // Two independent colors: one for fill, one for outline/interior
-  const outlineColor = brush.random(palette);
+  const outlineColor = colorOverride ?? brush.random(palette);
   let fillColor = brush.random(palette);
   while (fillColor === outlineColor) fillColor = brush.random(palette);
 
@@ -592,70 +805,42 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false) {
     ];
   }
 
-  // Fill shape: displaced, ~1/3 of points kept, extra distortion, also rotated
-  const dispMag = brush.random(2, 6);
-  const fillDX = brush.random(-20, 20) * scale * dispMag;
-  const fillDY = brush.random(-20, 20) * scale * dispMag;
-  const fillJitter = jitter * 2.5;
-  const hFill = outline
-    .filter((_, i) => i === 0 || i === outline.length - 1 || brush.random(1) > 0.75)
-    .map(([px, py]) => {
-      const tx = (px - cx) * scale + brush.random(-fillJitter, fillJitter);
-      const ty = (py - cy) * scale * 1.5 + brush.random(-fillJitter, fillJitter);
-      return [
-        x + fillDX + cos * tx - sin * ty,
-        y + fillDY + sin * tx + cos * ty,
-      ];
-    });
-
   // Mutually exclusive: a hand either fills or hatches, never both
-  const doFill  = brush.random(1) > 0.75;
-  const doErase = !doFill && brush.random(1) > 0.2;
-  const doHatch = !doFill && brush.random(1) > 0.75;
+  const doFill  = forceErase ? false : brush.random(1) > 0.75;
+  const doErase = forceErase ? true  : (!doFill && brush.random(1) > 0.2);
+  const doHatch = !doFill && brush.random(1) > 0.25;
 
-  const displacedPol = new brush.Polygon(hFill); // fill / erase only
-  const normalPol    = new brush.Polygon(h);     // hatch + outline
+  const eraseShape = useHand1 ? hand1EraseShape : hand2EraseShape;
+  const eraseCX    = useHand1 ? hand1CX : hand2CX;
+  const eraseCY    = useHand1 ? hand1CY : hand2CY;
+  const eraseYStretch = useHand1 ? 1.5 : 2;
+  const hErase = transformPoints(eraseShape, x, y, scale, jitter * 0.3, cos, sin, eraseCX, eraseCY, eraseYStretch);
 
-  // 1. Fill or erase the displaced polygon
-  if (doFill) {
-        brush.erase(bgColor, 255);
-    displacedPol.erase();
-    brush.noErase();
-    brush.fillStyle(fillColor, 100);
-    brush.fillBleed(brush.random(0.05, 0.15));
-    brush.fillTexture(brush.random(0.1, 0.4), 0.4);
-    displacedPol.fill();
-    brush.noFill();
-  } else if (doErase) {
+  // 1. Fill or erase
+  if (doFill || doErase) {
+    brush.noStroke();
     brush.erase(bgColor, 255);
-    brush.spline(hFill, 0.25);
+    brush.spline(hErase, 0.5);
     brush.noErase();
   }
+  if (doFill) {
+    brush.fillStyle(fillColor, 100);
+    brush.fillBleed(brush.random(0.03, 0.1));
+    brush.fillTexture(brush.random(0.1, 0.3), 0.15);
+    brush.spline(hErase, 0);
+    brush.noFill();
+  } 
 
-  // 2. Hatch the normal polygon (outlineColor)
-  if (doHatch) {
-    brush.hatch(19 * canvasScale, brush.random(-Math.PI / 2, 0), { rand: 0.15, continuous: true, gradient: brush.random(0.1,0.5) });
-    brush.hatchStyle(handBrush, outlineColor, 1);
-    brush.spline(h, 1)
-    brush.noHatch();
-
-    // And now erase the noirmal polygon
-    brush.erase(fillColor, 80);
-    displacedPol.erase();
-    brush.noErase();
-  }
-
-  // 3. Outline the normal polygon (outlineColor)
-  brush.set(handBrush, outlineColor, 1);
+  // 2. Outline the normal polygon (outlineColor)
+  brush.set(handBrush, outlineColor, 1.25);
   brush.spline(h, 1)
 
-  // 4. Interior lines — each randomly included
-  for (const [pts, threshold] of interiors) {
-    if (full || brush.random(1) > threshold) brush.spline(tp(pts), 0.5);
+  // 3. Interior lines
+  for (const [pts] of interiors) {
+    brush.spline(tp(pts), 0.5);
   }
-
   // Sometimes hatch interior details
-  if (doHatch && brush.random(0,1) > 0.35) {
+  if (doHatch) {
     brush.hatch(10 * canvasScale, brush.random(-Math.PI / 2, 0), { rand: 0.15, continuous: true, gradient: brush.random(0.1,0.5) });
     brush.hatchStyle(handBrush, outlineColor, 1);
     for (const [pts, threshold] of interiors) {
@@ -700,7 +885,7 @@ function poissonSample(n, scales, width, height, maxAttempts = 80) {
 }
 
 const MAX_HANDS = 15;
-const handScales = Array.from({length: MAX_HANDS}, () => brush.random(0.25, 0.55) * canvasScale);
+const handScales = Array.from({length: MAX_HANDS}, () => brush.random(0.35, 0.75) * canvasScale);
 const positions = poissonSample(MAX_HANDS, handScales, w, h);
 let handCount = 0;
 
@@ -718,7 +903,7 @@ function drawBackgroundShapes() {
   }
 
   // Insert interpolated points every ~step px along each edge of a closed polygon
-  const subdivide = (pts, step = 40) => {
+  const subdivide = (pts, step = 50) => {
     const result = [];
     for (let i = 0; i < pts.length; i++) {
       const [x1, y1] = pts[i];
@@ -796,65 +981,215 @@ function drawBackgroundShapes() {
     }
 
 
-brush.noStroke();
+    brush.noStroke();
 
-    let filling = brush.random(1) > 0.5;
-
-
+    // Fill or erase with color
+    let filling = brush.random(1) > 0.5 || shape.curved;
     brush.erase(bgColor, 100);
-    if (!filling) {
-      brush.erase(color, 100);
-    }
     drawShape();
     brush.noErase();
-    brush.draw();
-
     
-
     if (filling) {
       brush.fillStyle(color, 150);
       brush.fillBleed(0.05);
       brush.fillTexture(0.1, 0.15);
+    } else {
+      brush.erase(color, 85);
+      drawShape();
+      brush.draw();
+      brush.noErase();
     }
-
     
-    brush.hatch(40 * canvasScale,0);
-    brush.hatchStyle("spray", color, 3);
+    brush.hatch(30 * canvasScale,0);
+    brush.hatchStyle("spray", color, 0.7);
     drawShape();
     brush.noFill();
     brush.noHatch();
-
     brush.draw();
   }
 }
 
-brush.wiggle(1)
 
-drawBackgroundShapes();
+// Earth shapes for composed mode (hand-traced architectural ground geometry)
+const earthShape1 = [
+  [1853, 641],[1804, 641],[1742, 641],[1693, 641],[1640, 641],[1587, 641],
+  [1538, 640],[1485, 640],[1436, 638],[1387, 635],[1333, 635],[1284, 634],
+  [1235, 631],[1182, 631],[1129, 631],[1080, 631],[1031, 631],[978, 631],
+  [928, 631],[875, 635],[826, 637],[777, 637],[728, 634],[679, 632],
+  [630, 632],[581, 632],[532, 632],[483, 632],[487, 650],[532, 657],
+  [581, 658],[634, 663],[687, 669],[736, 676],[785, 680],[834, 682],
+  [883, 683],[933, 680],[969, 693],[969, 711],[969, 729],[961, 747],
+  [949, 764],[941, 781],[990, 786],[1039, 790],[1084, 783],[1088, 764],
+  [1104, 747],[1117, 729],[1129, 712],[1141, 695],[1141, 677],[1186, 685],
+  [1243, 687],[1301, 689],[1354, 690],[1403, 692],[1452, 692],[1501, 695],
+  [1550, 698],[1599, 703],[1636, 715],[1669, 729],[1681, 747],[1677, 764],
+  [1644, 779],[1603, 789],[1554, 796],[1505, 799],[1456, 799],[1407, 799],
+  [1358, 800],[1309, 803],[1260, 805],[1211, 806],[1162, 809],[1157, 826],
+  [1153, 844],[1141, 861],[1186, 868],[1235, 868],[1292, 868],[1346, 868],
+  [1399, 870],[1456, 870],[1505, 870],[1554, 871],[1607, 871],[1656, 874],
+  [1710, 876],[1759, 876],[1808, 877],[1845, 865],[1840, 848],[1840, 831],
+  [1845, 813],[1845, 796],[1845, 779],[1849, 761],[1853, 744],[1861, 726],
+  [1869, 709],[1877, 692],[1885, 674],[1890, 657],
+];
+const earthShape2 = [
+  [151, 635],[200, 635],[249, 635],[299, 635],[348, 631],[397, 630],
+  [446, 632],[458, 650],[409, 656],[348, 656],[294, 657],[245, 658],
+  [196, 658],[147, 658],[151, 641],
+];
+const earthShape3 = [
+  [753, 575],[753, 592],[802, 598],[843, 608],[888, 616],[937, 619],
+  [982, 627],[1031, 624],[1088, 616],[1137, 609],[1178, 599],[1182, 582],
+  [1145, 569],[1096, 564],[1047, 559],[998, 554],[953, 562],[904, 569],
+  [855, 569],[806, 569],[757, 570],
+];
+const earthShape4 = [
+  [793, 469],[818, 485],[851, 498],[896, 505],[945, 498],[994, 492],
+  [1047, 491],[1096, 493],[1145, 495],[1194, 499],[1239, 509],[1268, 492],
+  [1280, 473],[1231, 472],[1182, 473],[1133, 473],[1080, 473],[1031, 475],
+  [982, 475],[933, 469],[883, 465],[834, 466],
+];
+// Bounding-box center of all earth shapes combined (x: 147–1890, y: 465–877)
+const earthShapeCX = 1019, earthShapeCY = 671;
 
-function drawTexture() {
-  brush.save()
-  brush.set("spray", "#d28b7a", 30 * canvasScale)
-  const divide = 15;
-  for (let i = 0; i < divide; i++) {
-    brush.line(-50, i * (h / divide), w + 50, i * (h / divide));
+// Composed mode: single large hand over sky / sun / earth
+function drawComposedScene() {
+  brush.wiggle(0)
+  // Pick 3 distinct palette colors
+  const usedColors = new Set();
+  const pickColor = () => {
+    let c;
+    do { c = brush.random(palette); } while (usedColors.has(c));
+    usedColors.add(c);
+    return c;
+  };
+  const skyColor   = pickColor();
+  const sunColor   = pickColor();
+  const earthColor = pickColor();
+
+  const subdivide = (pts, step = 2) => {
+    const result = [];
+    for (let i = 0; i < pts.length; i++) {
+      const [x1, y1] = pts[i];
+      const [x2, y2] = pts[(i + 1) % pts.length];
+      const n = Math.max(1, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / step));
+      for (let t = 0; t < n; t++)
+        result.push([x1 + (x2 - x1) * (t / n), y1 + (y2 - y1) * (t / n)]);
+    }
+    return result;
+  };
+
+  const drawPoly = (pts, curvature = 0) => {
+    brush.beginPath(curvature);
+    brush.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) brush.lineTo(pts[i][0], pts[i][1]);
+    brush.closePath();
+    brush.endPath();
+  };
+
+  const fillShape = (pts, color, curvature = 0, isBlob) => {
+    brush.noStroke();
+    brush.erase(bgColor, 100);
+    drawPoly(pts, curvature);
+    brush.noErase();
+    brush.draw();
+    if (isBlob) {
+      brush.fillStyle(color, 150);
+      brush.fillBleed(0.05);
+      brush.fillTexture(0.1, 0.15);
+    } else {
+      brush.erase(color, 80);
+      drawPoly(pts, curvature);
+      brush.draw();
+      brush.noErase();
+    }
+    brush.hatch(20 * canvasScale,0);
+    brush.hatchStyle("spray", color, 0.5);
+    drawPoly(pts, curvature);
+    brush.noFill();
+    brush.draw();
+    brush.noErase();
+    brush.noHatch();
+  };
+
+  // 1. Sky — framed rect (inset from canvas edges), optionally with irregular bottom edge
+  const skyH  = brush.random(0.52, 0.65);
+  const mX    = w * brush.random(0.04, 0.08); // horizontal margin
+  const mY    = h * brush.random(0.04, 0.08); // vertical margin (top)
+  const skyX0 = mX,  skyX1 = w - mX;
+  const skyY0 = mY,  skyY1 = h * skyH;
+  const useComplexSky = brush.random(1) > 0.3;
+  let skyPts;
+  if (useComplexSky) {
+    const numBumps = Math.floor(brush.random(3, 6));
+    const bottomEdge = Array.from({ length: numBumps + 2 }, (_, i) => {
+      const t = i / (numBumps + 1);
+      return [skyX0 + t * (skyX1 - skyX0), skyY1 + brush.random(-h * 0.04, h * 0.04)];
+    }).reverse();
+    skyPts = subdivide([[skyX0, skyY0], [skyX1, skyY0], [skyX1, skyY1], ...bottomEdge]);
+  } else {
+    skyPts = subdivide([[skyX0, skyY0], [skyX1, skyY0], [skyX1, skyY1], [skyX0, skyY1]]);
   }
-  brush.restore()
+  fillShape(skyPts, skyColor);
+
+  // 2. Sun — blob in upper-right area
+  const sunCX = brush.random(w * 0.62, w * 0.85);
+  const sunCY = brush.random(h * 0.04, h * 0.20);
+  const sunRX = w * brush.random(0.06, 0.13);
+  const sunRY = h * brush.random(0.07, 0.15);
+  const sunPts = Array.from({ length: 8 }, (_, i) => {
+    const a = (i / 8) * Math.PI * 2;
+    return [sunCX + Math.cos(a) * sunRX * brush.random(0.75, 1.25),
+            sunCY + Math.sin(a) * sunRY * brush.random(0.75, 1.25)];
+  });
+  fillShape(sunPts, sunColor, brush.random(0.6, 1), true);
+
+  // 3. Earth — scaled so bounding-box width matches the sky width, centered on sky
+  const earthRefW   = 1890 - 147; // reference bounding-box width of all earthShapes
+  const earthScale  = (skyX1 - skyX0) / earthRefW;
+  const earthPosX   = (skyX0 + skyX1) / 2;
+  const earthPosY   = h * brush.random(0.65, 0.74);
+  const earthJitter = 2 * earthScale;
+  const te = (pts) => transformPoints(pts, earthPosX, earthPosY, earthScale, earthJitter, 1, 0, earthShapeCX, earthShapeCY, 2.4);
+
+  for (const shape of [earthShape1, earthShape2, earthShape3, earthShape4]) {
+    fillShape(te(shape), earthColor, 1);
+  }
+
+  brush.draw();
 }
 
-brush.wiggle(0)
+const composedMode = brush.random(1) > 0.9;
 
+brush.wiggle(1)
 
-brush.draw();
+if (composedMode) {
+  drawComposedScene();
+} else {
+  drawBackgroundShapes();
+}
 
 const draw = () => {
-  if (handCount >= MAX_HANDS) { brush.noLoop(); return; }
-  const [x, y] = positions[handCount];
-  const isLast = handCount === MAX_HANDS - 1;
-  handCount++;
-  drawHand(x, y, handScales[handCount - 1], isLast);
-
-  if (handCount -1 === 0) drawTexture();
+  if (composedMode) {
+    brush.noLoop();
+    const handX     = w * brush.random(0.43, 0.57);
+    const handY     = h * brush.random(0.38, 0.50);
+    // hand1 bbox height: 789−83 = 706px; with yStretch=1.5 → 1059px effective at scale=1
+    // Scale so the hand occupies 55–72% of canvas height
+    const handRefH  = (789 - 83) * 1.5;
+    const handScale = (h * brush.random(0.35, 0.48)) / handRefH;
+    drawHand(handX, handY, handScale, true, {
+      forceErase:    true,
+      brushOverride: 'charcoal',
+      colorOverride: '#080f15',
+      rotationRange: Math.PI / 10,
+    });
+  } else {
+    if (handCount >= MAX_HANDS) { brush.noLoop(); return; }
+    const [x, y] = positions[handCount];
+    const isLast = handCount === MAX_HANDS - 1;
+    handCount++;
+    drawHand(x, y, handScales[handCount - 1], isLast);
+  }
 };
 
 brush.frameRate(5);
