@@ -1166,7 +1166,7 @@ function drawComposedScene() {
   brush.draw();
 }
 
-const composedMode = brush.random(1) > 0.3;
+const composedMode = brush.random(1) > 0.75;
 
 brush.wiggle(1)
 
