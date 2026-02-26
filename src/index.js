@@ -8,8 +8,8 @@ let h = Math.floor(window.innerHeight * pixelRatio);
 // Ensure minimum 1500px on the smaller dimension, maintaining aspect ratio.
 // The canvas element is scaled back down by CSS to fill the window.
 const maxDim = Math.max(w, h);
-if (maxDim < 1500) {
-  const upscale = 1500 / maxDim;
+if (maxDim < 1800) {
+  const upscale = 1800 / maxDim;
   w = Math.floor(w * upscale);
   h = Math.floor(h * upscale);
 }
@@ -93,12 +93,13 @@ const HAND_SCALE_MULT    = [1, 1.2, 2.5];  // per-hand scale multiplier  (normal
 const P_HAND_HATCH       = 0.75;         // probability hand gets hatched (when not filled)
 
 // Scattered mode
+const mMult = isMobile ? 1.5 : 1;
 const MAX_HANDS          = 15;           // total hands drawn
-const HAND_SCALE_SCATTER = [0.25, 0.85]; // per-hand scale range (× canvasScale)
-const RECT_SCALE_W       = [0.25, 0.60]; // rect width  (fraction of canvas w)
-const RECT_SCALE_H       = [0.27, 0.65]; // rect height (fraction of canvas h)
-const BLOB_SCALE         = [0.05, 0.17]; // blob rx/ry  (fraction of canvas w/h)
-const P_HAND_FILL        = isMobile ? 0 : 0.25;         // probability hand gets a fill
+const HAND_SCALE_SCATTER = [0.25 * mMult, 0.85 * mMult]; // per-hand scale range (× canvasScale)
+const RECT_SCALE_W       = [0.25 * mMult, 0.60 * mMult]; // rect width  (fraction of canvas w)
+const RECT_SCALE_H       = [0.27 * mMult, 0.65 * mMult]; // rect height (fraction of canvas h)
+const BLOB_SCALE         = [0.05 * mMult, 0.17 * mMult]; // blob rx/ry  (fraction of canvas w/h)
+const P_HAND_FILL        = 0.25;         // probability hand gets a fill
 const P_HAND_ERASE       = 0.80;         // probability hand gets erased (when not filled)
 
 // Single-hand mode
@@ -909,5 +910,5 @@ const draw = () => {
   }
 };
 
-brush.frameRate(15);
+brush.frameRate(8);
 brush.loop(draw);
