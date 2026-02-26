@@ -2,7 +2,7 @@ import * as brush from '@acamposuribe/brush';
 
 // Create main canvas and load library, plus config brushes
 // Physical pixel dimensions account for high-DPI screens
-const pixelRatio = window.devicePixelRatio || 1;
+const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
 let w = Math.floor(window.innerWidth  * pixelRatio);
 let h = Math.floor(window.innerHeight * pixelRatio);
 // Ensure minimum 1500px on the smaller dimension, maintaining aspect ratio.
