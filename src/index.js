@@ -1000,8 +1000,8 @@ function drawBackgroundShapes() {
       brush.noErase();
     }
     
-    brush.hatch(30 * canvasScale,0);
-    brush.hatchStyle("spray", color, 0.7);
+    brush.hatch(60 * canvasScale, Math.PI / 4);
+    brush.hatchStyle("spray", color, 1);
     drawShape();
     brush.noFill();
     brush.noHatch();
@@ -1102,8 +1102,8 @@ function drawComposedScene() {
       brush.draw();
       brush.noErase();
     }
-    brush.hatch(20 * canvasScale,0);
-    brush.hatchStyle("spray", color, 0.5);
+    brush.hatch(10 * canvasScale, Math.PI / 4, { gradient: 0.1 });
+    brush.hatchStyle("spray", color, 1);
     drawPoly(pts, curvature);
     brush.noFill();
     brush.draw();
@@ -1158,7 +1158,7 @@ function drawComposedScene() {
   brush.draw();
 }
 
-const composedMode = brush.random(1) > 0.9;
+const composedMode = brush.random(1) > 0.1;
 
 brush.wiggle(1)
 
