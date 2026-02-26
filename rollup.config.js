@@ -24,7 +24,7 @@ const config = {
     }),
     cleanup({ comments: "none" }),
     html({
-      title: "Happy 10th Anniversary, Ethereum!",
+      title: "Welcome to DPA !",
       template: ({ files, publicPath, title }) => 
 `<html>
   <head> 
