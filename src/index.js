@@ -7,9 +7,9 @@ let w = Math.floor(window.innerWidth  * pixelRatio);
 let h = Math.floor(window.innerHeight * pixelRatio);
 // Ensure minimum 1500px on the smaller dimension, maintaining aspect ratio.
 // The canvas element is scaled back down by CSS to fill the window.
-const minDim = Math.min(w, h);
-if (minDim < 1500) {
-  const upscale = 1500 / minDim;
+const maxDim = Math.max(w, h);
+if (maxDim < 1500) {
+  const upscale = 1500 / maxDim;
   w = Math.floor(w * upscale);
   h = Math.floor(h * upscale);
 }
@@ -102,7 +102,7 @@ const P_HAND_ERASE       = 0.80;         // probability hand gets erased (when n
 
 // Single-hand mode
 const P_SINGLE_HAND       = 0.25;         // probability of single large hand mode
-const HAND_SCALE_COMPOSED = [0.40, 0.52]; // hand height as fraction of canvas h
+const HAND_SCALE_COMPOSED = [0.40, 0.6]; // hand height as fraction of canvas h
 
 // Background
 const P_COMPOSED_BG = 0.3;         // probability of composed scene background (vs scatter shapes)
