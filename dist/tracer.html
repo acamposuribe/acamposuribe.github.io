@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Contour Tracer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #1a1a1a; color: #eee; font-family: monospace; display: flex; flex-direction: column; height: 100vh; }
+
+    #toolbar {
+      display: flex; align-items: center; gap: 16px;
+      padding: 10px 16px; background: #111; border-bottom: 1px solid #333; flex-shrink: 0;
+    }
+    #toolbar label { font-size: 13px; color: #aaa; }
+    #toolbar input[type=file] { font-size: 12px; color: #ccc; }
+    #toolbar input[type=range] { width: 100px; }
+    #toolbar span { font-size: 12px; color: #888; }
+    button {
+      padding: 5px 14px; font-size: 12px; font-family: monospace;
+      background: #333; color: #eee; border: 1px solid #555; cursor: pointer; border-radius: 3px;
+    }
+    button:hover { background: #444; }
+    button.danger { border-color: #933; color: #f88; }
+    button.danger:hover { background: #411; }
+    button.primary { border-color: #474; color: #8f8; }
+    button.primary:hover { background: #141; }
+
+    #workspace {
+      flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: flex-start;
+      padding: 20px; gap: 20px;
+    }
+    #canvas-wrap { position: relative; flex-shrink: 0; }
+    #img-bg {
+      display: block; max-width: 100%; user-select: none; pointer-events: none;
+    }
+    #overlay {
+      position: absolute; top: 0; left: 0; cursor: crosshair;
+    }
+
+    #output-panel {
+      flex-shrink: 0; width: 340px; display: flex; flex-direction: column; gap: 10px;
+    }
+    #output-panel h3 { font-size: 13px; color: #aaa; }
+    #stats { font-size: 12px; color: #666; }
+    #output {
+      flex: 1; background: #111; border: 1px solid #333; padding: 10px;
+      font-size: 11px; line-height: 1.5; overflow-y: auto; color: #8fc;
+      white-space: pre; border-radius: 4px; min-height: 200px; max-height: 60vh;
+    }
+    #hint {
+      font-size: 12px; color: #666; line-height: 1.6;
+    }
+
+    #no-image {
+      display: flex; align-items: center; justify-content: center;
+      width: 800px; height: 500px; border: 2px dashed #333; border-radius: 6px;
+      color: #555; font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <label>Image: <input type="file" id="file-input" accept="image/*"></label>
+  <label>Min dist: <input type="range" id="min-dist" min="2" max="30" value="8"></label>
+  <span id="dist-val">8 px</span>
+  <label>Scale: <input type="range" id="scale-input" min="20" max="200" value="100"></label>
+  <span id="scale-val">100%</span>
+  <button class="danger" id="btn-clear">Clear</button>
+  <button class="primary" id="btn-copy">Copy to clipboard</button>
+</div>
+
+<div id="workspace">
+  <div id="canvas-wrap">
+    <div id="no-image">← Load an image to start tracing</div>
+  </div>
+
+  <div id="output-panel">
+    <h3>Traced points → brush.js format</h3>
+    <div id="stats">No points yet</div>
+    <div id="output">// Hold mouse and drag along the contour.
+// Release to capture the segment.
+// Multiple drag sessions accumulate.
+    </div>
+    <div id="hint">
+      <b>How to use:</b><br>
+      1. Load the hand image above<br>
+      2. Hold <b>mouse down</b> and trace the outline<br>
+      3. Release to record the segment<br>
+      4. Repeat for each part of the contour<br>
+      5. Copy the array and paste into index.js
+    </div>
+  </div>
+</div>
+
+<script>
+  const fileInput   = document.getElementById('file-input');
+  const minDistSlider = document.getElementById('min-dist');
+  const distVal     = document.getElementById('dist-val');
+  const scaleSlider = document.getElementById('scale-input');
+  const scaleVal    = document.getElementById('scale-val');
+  const btnClear    = document.getElementById('btn-clear');
+  const btnCopy     = document.getElementById('btn-copy');
+  const wrap        = document.getElementById('canvas-wrap');
+  const noImage     = document.getElementById('no-image');
+  const outputEl    = document.getElementById('output');
+  const statsEl     = document.getElementById('stats');
+
+  let imgEl = null;
+  let overlay = null;
+  let ctx = null;
+
+  // All accumulated points across drag sessions
+  let allPoints = [];
+  // Points in the current drag
+  let currentDrag = [];
+  let isDragging = false;
+  let lastPt = null;
+
+  // Target canvas size for output scaling
+  const TARGET_W = 2000;
+  const TARGET_H = 1000;
+
+  minDistSlider.addEventListener('input', () => {
+    distVal.textContent = minDistSlider.value + ' px';
+  });
+
+  scaleSlider.addEventListener('input', () => {
+    const pct = scaleSlider.value;
+    scaleVal.textContent = pct + '%';
+    if (imgEl) applyScale(pct / 100);
+  });
+
+  function applyScale(factor) {
+    const nw = Math.round(imgEl.naturalWidth * factor);
+    const nh = Math.round(imgEl.naturalHeight * factor);
+    imgEl.style.width  = nw + 'px';
+    imgEl.style.height = nh + 'px';
+    overlay.width  = nw;
+    overlay.height = nh;
+    redrawAll();
+  }
+
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+
+    // Remove placeholder
+    if (noImage) noImage.remove();
+
+    // Create image element if not yet done
+    if (!imgEl) {
+      imgEl = document.createElement('img');
+      imgEl.id = 'img-bg';
+      imgEl.draggable = false;
+      wrap.appendChild(imgEl);
+
+      overlay = document.createElement('canvas');
+      overlay.id = 'overlay';
+      wrap.appendChild(overlay);
+      ctx = overlay.getContext('2d');
+
+      bindEvents();
+    }
+
+    imgEl.onload = () => {
+      applyScale(scaleSlider.value / 100);
+    };
+    imgEl.src = url;
+
+    allPoints = [];
+    currentDrag = [];
+    updateOutput();
+  });
+
+  function bindEvents() {
+    overlay.addEventListener('mousedown', e => {
+      isDragging = true;
+      currentDrag = [];
+      lastPt = null;
+      const pt = getPos(e);
+      addPoint(pt);
+    });
+
+    overlay.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      const pt = getPos(e);
+      const minDist = parseInt(minDistSlider.value);
+      if (!lastPt || dist(lastPt, pt) >= minDist) {
+        addPoint(pt);
+        drawSegment();
+      }
+    });
+
+    overlay.addEventListener('mouseup', e => {
+      if (!isDragging) return;
+      isDragging = false;
+      if (currentDrag.length > 0) {
+        allPoints.push(...currentDrag);
+        currentDrag = [];
+        updateOutput();
+      }
+    });
+
+    overlay.addEventListener('mouseleave', e => {
+      if (isDragging) {
+        isDragging = false;
+        if (currentDrag.length > 0) {
+          allPoints.push(...currentDrag);
+          currentDrag = [];
+          updateOutput();
+        }
+      }
+    });
+  }
+
+  function getPos(e) {
+    const r = overlay.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  function dist(a, b) {
+    return Math.hypot(b.x - a.x, b.y - a.y);
+  }
+
+  function addPoint(pt) {
+    currentDrag.push(pt);
+    lastPt = pt;
+  }
+
+  function drawSegment() {
+    if (currentDrag.length < 2) return;
+    const a = currentDrag[currentDrag.length - 2];
+    const b = currentDrag[currentDrag.length - 1];
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = '#ff4400';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Draw dot at each point
+    ctx.fillStyle = '#ff8800';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function redrawAll() {
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    if (allPoints.length === 0) return;
+    // Redraw accumulated path
+    ctx.strokeStyle = '#ff4400';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(allPoints[0].x, allPoints[0].y);
+    for (let i = 1; i < allPoints.length; i++) {
+      ctx.lineTo(allPoints[i].x, allPoints[i].y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#ff8800';
+    for (const p of allPoints) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function updateOutput() {
+    const total = allPoints.length;
+    statsEl.textContent = `${total} points captured`;
+    if (total === 0) {
+      outputEl.textContent = '// No points yet';
+      return;
+    }
+
+    // Scale to target canvas size — uniform scale to preserve aspect ratio
+    const scale = Math.min(TARGET_W / overlay.width, TARGET_H / overlay.height);
+
+    const scaled = allPoints.map(p => [
+      Math.round(p.x * scale),
+      Math.round(p.y * scale)
+    ]);
+
+    const lines = scaled.map(([x, y]) => `  [${x}, ${y}]`).join(',\n');
+    outputEl.textContent = `const hand = [\n${lines},\n];`;
+  }
+
+  btnClear.addEventListener('click', () => {
+    allPoints = [];
+    currentDrag = [];
+    if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
+    outputEl.textContent = '// Cleared. Start tracing again.';
+    statsEl.textContent = 'No points yet';
+  });
+
+  btnCopy.addEventListener('click', () => {
+    const text = outputEl.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      btnCopy.textContent = 'Copied!';
+      setTimeout(() => btnCopy.textContent = 'Copy to clipboard', 1500);
+    });
+  });
+</script>
+</body>
+</html>

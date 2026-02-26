@@ -99,7 +99,7 @@ const HAND_SCALE_SCATTER = [0.25 * mMult, 0.85 * mMult]; // per-hand scale range
 const RECT_SCALE_W       = [0.25 * mMult, 0.60 * mMult]; // rect width  (fraction of canvas w)
 const RECT_SCALE_H       = [0.27 * mMult, 0.65 * mMult]; // rect height (fraction of canvas h)
 const BLOB_SCALE         = [0.05 * mMult, 0.17 * mMult]; // blob rx/ry  (fraction of canvas w/h)
-const P_HAND_FILL        = 0.25;         // probability hand gets a fill
+const P_HAND_FILL        = 0.30;         // probability hand gets a fill
 const P_HAND_ERASE       = 0.80;         // probability hand gets erased (when not filled)
 
 // Single-hand mode
@@ -508,6 +508,7 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false, { requireFi
     brush.erase(bgColor, 100);
     brush.spline(hErase, 0.5);
     brush.noErase();
+    //brush.draw();
   }
   if (doFill) {
     brush.fillStyle(fillColor, 100);
@@ -694,23 +695,22 @@ function drawBackgroundShapes() {
 
     // Fill or erase with color
     let filling = brush.random(1) > 0.5 || shape.curved;
-    brush.erase(bgColor, 100);
-    drawShape();
-    brush.noErase();
-    brush.draw();
-
     if (filling) {
+      brush.erase(bgColor, 100);
+      drawShape();
+      brush.noErase();
+      brush.draw();
       brush.fillStyle(color, 150);
       brush.fillBleed(0.05);
       brush.fillTexture(0.1, 0.05);
     } else {
-      brush.erase(color, 85);
+      brush.erase(color, 100);
       drawShape();
       brush.draw();
       brush.noErase();
     }
 
-    if (!isMobile) {
+    if (false) {
       brush.hatch(55 * canvasScale, Math.PI / 4, { gradient: 0.1 });
       brush.hatchStyle("spray", color, 1.5);
     }
@@ -758,22 +758,23 @@ function drawComposedScene() {
 
   const fillShape = (pts, color, curvature = 0, isBlob) => {
     brush.noStroke();
-    brush.erase(bgColor, 100);
-    drawPoly(pts, curvature);
-    brush.noErase();
-    brush.draw();
+
     if (isBlob) {
+      brush.erase(bgColor, 100);
+      drawPoly(pts, curvature);
+      brush.noErase();
+      brush.draw();
       brush.fillStyle(color, 150);
       brush.fillBleed(0.05);
       brush.fillTexture(0.1, 0.15);
     } else {
-      brush.erase(color, 80);
+      brush.erase(color, 100);
       drawPoly(pts, curvature);
       brush.draw();
       brush.noErase();
     }
 
-    if (!isMobile) {
+    if (false) {
       brush.hatch(25 * canvasScale, Math.PI / 4, { gradient: 0.1 });
       brush.hatchStyle("spray", color, 1.3);
     }
@@ -872,6 +873,14 @@ const composedBg = brush.random(1) < P_COMPOSED_BG;
 const singleHand = brush.random(1) < P_SINGLE_HAND;
 
 
+function drawTexture () {
+  brush.hatch(300 * canvasScale, Math.PI / 4, { rand: 0.1});
+  brush.hatchStyle("spray", bgColor, 8);
+  brush.rect(-w * 0.05, -h * 0.05, w * 1.1, h * 1.1);
+  brush.noHatch();
+}
+
+
 // DRAW TO CANVAS
 
 // 1. Background color
@@ -884,6 +893,8 @@ if (composedBg) {
 } else {
   drawBackgroundShapes();
 }
+
+if (!isMobile) {drawTexture(); brush.draw();}
 
 // 3. Draw loop
 const draw = () => {
