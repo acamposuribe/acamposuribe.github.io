@@ -150,6 +150,7 @@
   document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; drawCursor(); }, true);
   document.addEventListener('mousedown', () => { targetRotation = -0.32; startAnim(); });
   document.addEventListener('mouseup',   () => { targetRotation = 0;     startAnim(); });
+  document.addEventListener('mouseleave', () => { ctx.clearRect(0, 0, cc.width, cc.height); });
   window.addEventListener('resize', () => { resizeCanvas(); drawCursor(); });
 
   // ── Iframe covers ─────────────────────────────────────────────────────────
