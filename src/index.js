@@ -709,11 +709,6 @@ function drawBackgroundShapes() {
       brush.draw();
       brush.noErase();
     }
-
-    if (false) {
-      brush.hatch(55 * canvasScale, Math.PI / 4, { gradient: 0.1 });
-      brush.hatchStyle("spray", color, 1.5);
-    }
     drawShape();
     brush.noFill();
     brush.noHatch();
@@ -773,12 +768,6 @@ function drawComposedScene() {
       brush.draw();
       brush.noErase();
     }
-
-    if (false) {
-      brush.hatch(25 * canvasScale, Math.PI / 4, { gradient: 0.1 });
-      brush.hatchStyle("spray", color, 1.3);
-    }
-
     drawPoly(pts, curvature);
     brush.noFill();
     brush.draw();
@@ -894,7 +883,9 @@ if (composedBg) {
   drawBackgroundShapes();
 }
 
-if (!isMobile) {drawTexture(); brush.draw();}
+if (!isMobile) {
+  drawTexture(); brush.draw();
+}
 
 // 3. Draw loop
 const draw = () => {
@@ -921,5 +912,5 @@ const draw = () => {
   }
 };
 
-brush.frameRate(8);
+brush.frameRate(isMobile ? 1 : 8);
 brush.loop(draw);
