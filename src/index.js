@@ -82,7 +82,7 @@ const P_HAND_ERASE       = 0.80;         // probability hand gets erased (when n
 
 // Single-hand mode
 const P_SINGLE_HAND       = 0.25;         // probability of single large hand mode
-const HAND_SCALE_COMPOSED = [0.5, 0.85]; // hand height as fraction of canvas h
+const HAND_SCALE_COMPOSED = [0.5, 0.7]; // hand height as fraction of canvas h
 
 // Background
 const P_COMPOSED_BG = 0.3;         // probability of composed scene background (vs scatter shapes)
