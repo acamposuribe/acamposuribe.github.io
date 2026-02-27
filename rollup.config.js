@@ -30,7 +30,16 @@ const config = {
   <head> 
     <title>${title}</title>
     <style>
-        body { margin: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        canvas {
+          display: block !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          max-width: none !important;
+          max-height: none !important;
+          object-fit: cover !important;
+        }
     </style>
   </head>
   <body>
