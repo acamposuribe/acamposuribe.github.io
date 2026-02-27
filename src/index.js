@@ -1117,13 +1117,23 @@ if (!isMobile) {
 }
 
 // 3. Draw loop
+const pendingClicks = [];
+let isDone = false;
+
 const draw = () => {
+  if (isDone) {
+    if (pendingClicks.length > 0) {
+      const [cx, cy] = pendingClicks.shift();
+      drawHand(cx, cy, brush.random(...HAND_SCALE_SCATTER) * canvasScale);
+    }
+    return;
+  }
   if (singleHand) {
-    brush.noLoop();
+    isDone = true;
+    brush.frameRate(10);
+    window.dispatchEvent(new CustomEvent('sketch:done'));
     const handX     = w * brush.random(0.43, 0.57);
     const handY     = h * brush.random(0.38, 0.50);
-    // hand1 bbox height: 789−83 = 706px; with yStretch=1.5 → 1059px effective at scale=1
-    // Scale so the hand occupies 55–72% of canvas height
     const handRefH  = (789 - 83) * 1.5;
     const handScale = (h * brush.random(...HAND_SCALE_COMPOSED)) / handRefH;
     drawHand(handX, handY, handScale, false, {
@@ -1133,7 +1143,12 @@ const draw = () => {
       rotationRange: Math.PI / 10,
     });
   } else {
-    if (handCount >= MAX_HANDS) { brush.noLoop(); return; }
+    if (handCount >= MAX_HANDS) {
+      isDone = true;
+      brush.frameRate(10);
+      window.dispatchEvent(new CustomEvent('sketch:done'));
+      return;
+    }
     const [x, y] = positions[handCount];
     const isLast = handCount === MAX_HANDS - 1;
     handCount++;
@@ -1143,3 +1158,15 @@ const draw = () => {
 
 brush.frameRate(isMobile ? 1 : 8);
 brush.loop(draw);
+
+// Click-to-add: map CSS-pixel coords to canvas physical-pixel coords (object-fit: cover).
+document.querySelector('canvas').addEventListener('click', e => {
+  if (!isDone) return;
+  const scale   = Math.max(window.innerWidth / w, window.innerHeight / h);
+  const offsetX = (window.innerWidth  - w * scale) / 2;
+  const offsetY = (window.innerHeight - h * scale) / 2;
+  pendingClicks.push([
+    (e.clientX - offsetX) / scale,
+    (e.clientY - offsetY) / scale,
+  ]);
+});

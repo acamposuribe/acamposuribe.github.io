@@ -44,6 +44,7 @@ const config = {
   </head>
   <body>
     ${files.js.map(js => `<script src="${publicPath}${js.fileName}"></script>`).join('\n')}
+    <script src="lc-cursor.js"></script>
   </body>
 </html>`
     })

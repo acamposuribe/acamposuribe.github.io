@@ -1,6 +1,8 @@
-<!-- INYECTION LC Cursor -->
-<script>
+
 (function () {
+  if (window.matchMedia('(pointer: coarse)').matches) return;
+
+  function init() {
   // Inject cursor: none on all elements
   const style = document.createElement('style');
   style.textContent = '*, *::before, *::after { cursor: none !important; }';
@@ -197,7 +199,8 @@
       }
     }
   }).observe(document.body, { childList: true, subtree: true });
+  } // end init
+
+  window.addEventListener('sketch:done', init, { once: true });
 
 })();
-</script>
-<!-- END INYECTION -->
