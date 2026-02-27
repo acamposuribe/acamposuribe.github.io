@@ -110,12 +110,15 @@
   let overlay = null;
   let ctx = null;
 
-  // All accumulated points across drag sessions
-  let allPoints = [];
+  // Each completed drag becomes its own segment (array of points)
+  let segments = [];
   // Points in the current drag
   let currentDrag = [];
   let isDragging = false;
   let lastPt = null;
+
+  // Colors cycled per segment so boundaries are visible
+  const SEG_COLORS = ['#ff4400','#00ccff','#ffcc00','#88ff44','#ff88ff'];
 
   // Target canvas size for output scaling
   const TARGET_W = 2000;
@@ -169,7 +172,7 @@
     };
     imgEl.src = url;
 
-    allPoints = [];
+    segments = [];
     currentDrag = [];
     updateOutput();
   });
@@ -197,7 +200,7 @@
       if (!isDragging) return;
       isDragging = false;
       if (currentDrag.length > 0) {
-        allPoints.push(...currentDrag);
+        segments.push([...currentDrag]);
         currentDrag = [];
         updateOutput();
       }
@@ -207,7 +210,7 @@
       if (isDragging) {
         isDragging = false;
         if (currentDrag.length > 0) {
-          allPoints.push(...currentDrag);
+          segments.push([...currentDrag]);
           currentDrag = [];
           updateOutput();
         }
@@ -229,18 +232,22 @@
     lastPt = pt;
   }
 
+  function segColor(i) {
+    return SEG_COLORS[i % SEG_COLORS.length];
+  }
+
   function drawSegment() {
     if (currentDrag.length < 2) return;
+    const color = segColor(segments.length); // color of the in-progress segment
     const a = currentDrag[currentDrag.length - 2];
     const b = currentDrag[currentDrag.length - 1];
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
-    ctx.strokeStyle = '#ff4400';
+    ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.stroke();
-    // Draw dot at each point
-    ctx.fillStyle = '#ff8800';
+    ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
     ctx.fill();
@@ -248,28 +255,28 @@
 
   function redrawAll() {
     ctx.clearRect(0, 0, overlay.width, overlay.height);
-    if (allPoints.length === 0) return;
-    // Redraw accumulated path
-    ctx.strokeStyle = '#ff4400';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(allPoints[0].x, allPoints[0].y);
-    for (let i = 1; i < allPoints.length; i++) {
-      ctx.lineTo(allPoints[i].x, allPoints[i].y);
-    }
-    ctx.stroke();
-    ctx.fillStyle = '#ff8800';
-    for (const p of allPoints) {
+    segments.forEach((seg, i) => {
+      if (seg.length === 0) return;
+      const color = segColor(i);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
+      ctx.moveTo(seg[0].x, seg[0].y);
+      for (let j = 1; j < seg.length; j++) ctx.lineTo(seg[j].x, seg[j].y);
+      ctx.stroke();
+      ctx.fillStyle = color;
+      for (const p of seg) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
   }
 
   function updateOutput() {
-    const total = allPoints.length;
-    statsEl.textContent = `${total} points captured`;
-    if (total === 0) {
+    const totalPts = segments.reduce((s, seg) => s + seg.length, 0);
+    statsEl.textContent = `${segments.length} segment(s), ${totalPts} points total`;
+    if (segments.length === 0) {
       outputEl.textContent = '// No points yet';
       return;
     }
@@ -277,17 +284,18 @@
     // Scale to target canvas size — uniform scale to preserve aspect ratio
     const scale = Math.min(TARGET_W / overlay.width, TARGET_H / overlay.height);
 
-    const scaled = allPoints.map(p => [
-      Math.round(p.x * scale),
-      Math.round(p.y * scale)
-    ]);
+    const blocks = segments.map(seg => {
+      const lines = seg.map(p =>
+        `  [${Math.round(p.x * scale)}, ${Math.round(p.y * scale)}]`
+      ).join(',\n');
+      return `const hand = [\n${lines},\n];`;
+    });
 
-    const lines = scaled.map(([x, y]) => `  [${x}, ${y}]`).join(',\n');
-    outputEl.textContent = `const hand = [\n${lines},\n];`;
+    outputEl.textContent = blocks.join('\n\n');
   }
 
   btnClear.addEventListener('click', () => {
-    allPoints = [];
+    segments = [];
     currentDrag = [];
     if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
     outputEl.textContent = '// Cleared. Start tracing again.';
