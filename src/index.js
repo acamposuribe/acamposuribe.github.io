@@ -75,8 +75,8 @@ const mMult = isMobile ? 1.5 : 1;
 const MAX_HANDS          = 12;           // interior hands drawn
 const EDGE_HANDS_COUNT   = [0, 4];       // extra hands bleeding off canvas edges (inclusive range)
 const HAND_SCALE_SCATTER = [0.3 * mMult, 0.95 * mMult]; // per-hand scale range (× canvasScale)
-const RECT_SCALE_W       = [0.25 * mMult, 0.60 * mMult]; // rect width  (fraction of canvas w)
-const RECT_SCALE_H       = [0.27 * mMult, 0.65 * mMult]; // rect height (fraction of canvas h)
+const RECT_SCALE_W       = [0.33 * mMult, 0.55 * mMult]; // rect width  (fraction of canvas w)
+const RECT_SCALE_H       = [0.33 * mMult, 0.65 * mMult]; // rect height (fraction of canvas h)
 const BLOB_SCALE         = [0.05 * mMult, 0.17 * mMult]; // blob rx/ry  (fraction of canvas w/h)
 const P_HAND_FILL        = 0.30;         // probability hand gets a fill
 const P_HAND_ERASE       = 0.80;         // probability hand gets erased (when not filled)
@@ -84,6 +84,10 @@ const P_HAND_ERASE       = 0.80;         // probability hand gets erased (when n
 // Single-hand mode
 const P_SINGLE_HAND       = 0.25;         // probability of single large hand mode
 const HAND_SCALE_COMPOSED = [0.5, 0.7]; // hand height as fraction of canvas h
+
+// Background — scatter mode shapes
+const BG_CLUSTER_SIZE = [2, 3];    // number of shapes in the tight cluster [min, max]
+const BG_FREE_COUNT   = [4, 7];    // number of additional scattered shapes  [min, max]
 
 // Background
 const P_COMPOSED_BG = 0.3;         // probability of composed scene background (vs scatter shapes)
@@ -897,7 +901,7 @@ function drawBackgroundShapes() {
   const centers = []; // [cx, cy] for all shapes
 
   // 1. One tight cluster of 2–3 shapes
-  const clusterSize   = Math.floor(brush.random(2, 3));
+  const clusterSize   = Math.floor(brush.random(...BG_CLUSTER_SIZE));
   const clusterCX     = brush.random(w * 0.15, w * 0.85);
   const clusterCY     = brush.random(h * 0.15, h * 0.85);
   const clusterSpread = Math.min(w, h) * 0.26;
@@ -909,7 +913,7 @@ function drawBackgroundShapes() {
   }
 
   // 2. Remaining shapes Poisson-distributed away from each other and the cluster
-  const freeCount = Math.floor(brush.random(2, 6));
+  const freeCount = Math.floor(brush.random(...BG_FREE_COUNT));
   const MIN_DIST  = Math.min(w, h) * 0.35;
   for (let i = 0; i < freeCount; i++) {
     let best = null, bestScore = -Infinity;
