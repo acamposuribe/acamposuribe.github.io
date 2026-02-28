@@ -219,20 +219,53 @@
   });
   window.addEventListener('resize', () => { resizeCanvas(); drawCursor(); });
 
-  // ── Iframe cursor suppression ─────────────────────────────────────────────
-  // Buttons inside the iframe postMessage here to suppress the hand cursor
-  // while the pointer is hovering them.
-  window.addEventListener('message', e => {
-    if (e.data?.type === 'lc:cursor-hide') {
+  // ── Sketch buttons (download / reload) ───────────────────────────────────
+  const stroke = window.DPA_IS_DARK ? 'white' : '#080f15';
+  const shadow = window.DPA_IS_DARK ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.2)';
+  const btnBase = `position:fixed;top:20px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;padding:0;opacity:0.7;transition:opacity 0.15s;z-index:2147483646;filter:drop-shadow(0 1px 4px ${shadow});`;
+
+  const svgIcon = (paths) =>
+    `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+
+  const makeBtn = (svg, title, left, onClick) => {
+    const btn = document.createElement('button');
+    btn.title = title;
+    btn.style.cssText = `${btnBase}left:${left}px;`;
+    btn.innerHTML = svg;
+    btn.addEventListener('pointerover', () => {
+      btn.style.opacity = '1';
       cursorSuppressed = true;
       ctx.clearRect(0, 0, cc.width, cc.height);
       cursorOverride.textContent = '*, *::before, *::after { cursor: pointer !important; }';
-    } else if (e.data?.type === 'lc:cursor-show') {
+    });
+    btn.addEventListener('pointerout', () => {
+      btn.style.opacity = '0.7';
       cursorSuppressed = false;
       cursorOverride.textContent = '';
       drawCursor();
+    });
+    btn.addEventListener('click', e => { e.stopPropagation(); onClick(); });
+    document.body.appendChild(btn);
+  };
+
+  makeBtn(
+    svgIcon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
+    'Download', 20,
+    () => {
+      const canvas = document.querySelector('canvas');
+      if (!canvas) return;
+      const a = document.createElement('a');
+      a.download = `DPA#1_${window.DPA_SEED ?? ''}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
     }
-  });
+  );
+
+  makeBtn(
+    svgIcon('<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .87-8.19"/>'),
+    'Reload', 64,
+    () => window.location.reload()
+  );
 
   // ── Iframe covers ─────────────────────────────────────────────────────────
   // Iframes steal mouse events from the parent document. We place a transparent
@@ -254,7 +287,6 @@
     cover.addEventListener('mousemove', e => { if (cursorSuppressed) return; mouseInWindow = true; mx = e.clientX; my = e.clientY; drawCursor(); });
     cover.addEventListener('mouseleave', () => { ctx.clearRect(0, 0, cc.width, cc.height); });
     cover.addEventListener('mousedown', () => {
-      // Let the click pass through to the iframe
       cover.style.pointerEvents = 'none';
       setTimeout(() => { cover.style.pointerEvents = 'all'; }, 120);
       startWave();
@@ -262,8 +294,6 @@
     cover.addEventListener('mouseup', () => {});
 
     document.body.appendChild(cover);
-
-    // Keep cover aligned on scroll or resize
     window.addEventListener('scroll', reposition, true);
     window.addEventListener('resize', reposition);
   }

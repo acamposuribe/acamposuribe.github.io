@@ -18,6 +18,7 @@ brush.createCanvas(w, h);
 // Generate random alphanumeric 32 character seed
 const Seed = Array.from({ length: 32 }, () => Math.random().toString(36)[2]).join('');
 brush.seed(Seed);
+window.DPA_SEED = Seed;
 
 // canvasScale: ratio of physical canvas width to the 3000px reference design.
 // Must use physical pixels (w), not logical (w/pixelRatio), because all drawing
@@ -104,6 +105,7 @@ const SUN_SCALE_Y   = [0.07, 0.15]; // sun ry (fraction of canvas h)
 const bgColor = brush.random(bgPalette);
 const darkBgColor = brush.random(darkBgPalette);
 const isDark = brush.random(1) < P_DARK_BG;
+window.DPA_IS_DARK = isDark;
 if (isDark) {
   palette.push("#eae4d7", "#fffceb", "#395a8e", "#ddbf99")
 } else {
@@ -1234,51 +1236,3 @@ document.querySelector('canvas').addEventListener('click', e => {
     (e.clientY - offsetY) / scale,
   ]);
 });
-
-// ── UI Buttons ────────────────────────────────────────────────────────────────
-(function () {
-  const strokeColor = isDark ? 'white' : '#080f15';
-  const shadowColor = isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.2)';
-  const base = `position:fixed;top:20px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;padding:0;opacity:0.7;transition:opacity 0.15s;z-index:9999;filter:drop-shadow(0 1px 4px ${shadowColor});cursor:pointer;`;
-
-  const icon = (paths) =>
-    `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
-
-  const makeBtn = (svg, title, left, onClick) => {
-    const btn = document.createElement('button');
-    btn.title = title;
-    btn.style.cssText = `${base}left:${left}px;`;
-    btn.innerHTML = svg;
-    btn.addEventListener('pointerover', () => {
-      btn.style.opacity = '1';
-      window.parent.postMessage({ type: 'lc:cursor-hide' }, '*');
-    });
-    btn.addEventListener('pointerout', () => {
-      btn.style.opacity = '0.7';
-      window.parent.postMessage({ type: 'lc:cursor-show' }, '*');
-    });
-    btn.addEventListener('click', e => { e.stopPropagation(); onClick(); });
-    document.body.appendChild(btn);
-  };
-
-  // Download: saves canvas as PNG
-  makeBtn(
-    icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
-    'Download',
-    20,
-    () => {
-      const a = document.createElement('a');
-      a.download = `DPA#1_${Seed}.png`;
-      a.href = document.querySelector('canvas').toDataURL('image/png');
-      a.click();
-    }
-  );
-
-  // Reload: reloads this page (or just this iframe if embedded)
-  makeBtn(
-    icon('<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .87-8.19"/>'),
-    'Reload',
-    64,
-    () => window.location.reload()
-  );
-})();
