@@ -15,7 +15,7 @@
   const COLOR_INK        = '#080f15';
   const GREETINGS        = ['HOLA', 'HELLO', 'BON DIA'];
   const GREET_R          = 40;       // px — distance from hotspot
-  const GREET_DURATION   = 900;      // ms — how long greeting stays visible
+  const GREET_DURATION   = 1000;      // ms — how long greeting stays visible
   const GREET_FONT       = 'bold 13px monospace';
   const GREET_PAD_X      = 4;        // px — horizontal padding on background rect
   const GREET_BG_HEIGHT  = 14;       // px — background rect height
@@ -98,6 +98,7 @@
   let greetAngle = 0;
   let greeting = null;
   let greetTimerId = null;
+  let mouseInWindow = false;
 
   // ── Draw ──────────────────────────────────────────────────────────────────
   function drawCursor() {
@@ -195,7 +196,7 @@
   }
 
   // ── Events ────────────────────────────────────────────────────────────────
-  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; drawCursor(); }, true);
+  document.addEventListener('mousemove', e => { mouseInWindow = true; mx = e.clientX; my = e.clientY; drawCursor(); }, true);
   document.addEventListener('mousedown', () => {
     greeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
     greetAngle = Math.random() * Math.PI * 2;
@@ -206,7 +207,11 @@
     if (greetTimerId) clearTimeout(greetTimerId);
     greetTimerId = setTimeout(() => { greeting = null; greetTimerId = null; drawCursor(); }, GREET_DURATION);
   });
-  document.addEventListener('mouseleave', () => { ctx.clearRect(0, 0, cc.width, cc.height); });
+  document.addEventListener('mouseleave', () => {
+    mouseInWindow = false;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; waveStart = null; rotation = 0; }
+    ctx.clearRect(0, 0, cc.width, cc.height);
+  });
   window.addEventListener('resize', () => { resizeCanvas(); drawCursor(); });
 
   // ── Iframe covers ─────────────────────────────────────────────────────────
@@ -226,8 +231,8 @@
     }
     reposition();
 
-    cover.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; drawCursor(); });
-    cover.addEventListener('mouseleave', () => drawCursor());
+    cover.addEventListener('mousemove', e => { mouseInWindow = true; mx = e.clientX; my = e.clientY; drawCursor(); });
+    cover.addEventListener('mouseleave', () => { ctx.clearRect(0, 0, cc.width, cc.height); });
     cover.addEventListener('mousedown', () => {
       // Let the click pass through to the iframe
       cover.style.pointerEvents = 'none';
