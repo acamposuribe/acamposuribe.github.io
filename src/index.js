@@ -78,7 +78,7 @@ const HAND_SCALE_SCATTER = [0.3 * mMult, 0.95 * mMult]; // per-hand scale range 
 const RECT_SCALE_W       = [0.33 * mMult, 0.55 * mMult]; // rect width  (fraction of canvas w)
 const RECT_SCALE_H       = [0.33 * mMult, 0.65 * mMult]; // rect height (fraction of canvas h)
 const BLOB_SCALE         = [0.05 * mMult, 0.17 * mMult]; // blob rx/ry  (fraction of canvas w/h)
-const P_HAND_FILL        = 0.30;         // probability hand gets a fill
+const P_HAND_FILL        = 0.25;         // probability hand gets a fill
 const P_HAND_ERASE       = 0.80;         // probability hand gets erased (when not filled)
 
 // Single-hand mode
