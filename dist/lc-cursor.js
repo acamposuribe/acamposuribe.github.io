@@ -211,7 +211,11 @@
   }
 
   // ── Events ────────────────────────────────────────────────────────────────
-  document.addEventListener('mousemove', e => { mouseInWindow = true; mx = e.clientX; my = e.clientY; scheduleDraw(); }, true);
+  document.addEventListener('mousemove', e => {
+    const entering = !mouseInWindow;
+    mouseInWindow = true; mx = e.clientX; my = e.clientY;
+    entering ? drawCursor() : scheduleDraw();
+  }, true);
   document.addEventListener('mousedown', () => {
     greeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
     greetAngle = Math.random() * Math.PI * 2;
