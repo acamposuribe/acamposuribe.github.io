@@ -103,8 +103,18 @@
   let greetTimerId = null;
   let mouseInWindow = false;
   let cursorSuppressed = false;
+  let drawScheduled = false;
 
   // ── Draw ──────────────────────────────────────────────────────────────────
+  // Throttle mouse-driven redraws to one per animation frame.
+  // The wave animation's own rAF loop calls drawCursor() directly, so we skip
+  // scheduling when it's already running to avoid double-draws.
+  function scheduleDraw() {
+    if (drawScheduled || rafId) return;
+    drawScheduled = true;
+    requestAnimationFrame(() => { drawScheduled = false; drawCursor(); });
+  }
+
   function drawCursor() {
     if (cursorSuppressed) return;
     ctx.clearRect(0, 0, cc.width, cc.height);
@@ -201,7 +211,7 @@
   }
 
   // ── Events ────────────────────────────────────────────────────────────────
-  document.addEventListener('mousemove', e => { mouseInWindow = true; mx = e.clientX; my = e.clientY; drawCursor(); }, true);
+  document.addEventListener('mousemove', e => { mouseInWindow = true; mx = e.clientX; my = e.clientY; scheduleDraw(); }, true);
   document.addEventListener('mousedown', () => {
     greeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
     greetAngle = Math.random() * Math.PI * 2;
@@ -220,9 +230,27 @@
   window.addEventListener('resize', () => { resizeCanvas(); drawCursor(); });
 
   // ── Sketch buttons (download / reload) ───────────────────────────────────
+  // A safe zone div wraps both buttons. Cursor suppression is managed on the
+  // zone so the full area — including the gap between buttons and padding —
+  // switches to pointer in one clean step.
   const stroke = window.DPA_IS_DARK ? 'white' : '#080f15';
   const shadow = window.DPA_IS_DARK ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.2)';
-  const btnBase = `position:fixed;top:20px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;padding:0;opacity:0.7;transition:opacity 0.15s;z-index:2147483646;filter:drop-shadow(0 1px 4px ${shadow});`;
+
+  // Zone: top-left corner with 12px padding around the buttons.
+  // Buttons sit at absolute top:12, left:12 and left:56 inside it.
+  const safeZone = document.createElement('div');
+  safeZone.style.cssText = 'position:fixed;top:8px;left:8px;width:90px;height:46px;z-index:2147483646;';
+  safeZone.addEventListener('pointerenter', () => {
+    cursorSuppressed = true;
+    ctx.clearRect(0, 0, cc.width, cc.height);
+    cursorOverride.textContent = '*, *::before, *::after { cursor: pointer !important; }';
+  });
+  safeZone.addEventListener('pointerleave', () => {
+    cursorSuppressed = false;
+    cursorOverride.textContent = '';
+    drawCursor();
+  });
+  document.body.appendChild(safeZone);
 
   const svgIcon = (paths) =>
     `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
@@ -230,27 +258,17 @@
   const makeBtn = (svg, title, left, onClick) => {
     const btn = document.createElement('button');
     btn.title = title;
-    btn.style.cssText = `${btnBase}left:${left}px;`;
+    btn.style.cssText = `position:absolute;top:12px;left:${left}px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;padding:0;opacity:0.7;transition:opacity 0.15s;filter:drop-shadow(0 1px 4px ${shadow});`;
     btn.innerHTML = svg;
-    btn.addEventListener('pointerover', () => {
-      btn.style.opacity = '1';
-      cursorSuppressed = true;
-      ctx.clearRect(0, 0, cc.width, cc.height);
-      cursorOverride.textContent = '*, *::before, *::after { cursor: pointer !important; }';
-    });
-    btn.addEventListener('pointerout', () => {
-      btn.style.opacity = '0.7';
-      cursorSuppressed = false;
-      cursorOverride.textContent = '';
-      drawCursor();
-    });
+    btn.addEventListener('pointerover', () => { btn.style.opacity = '1'; });
+    btn.addEventListener('pointerout',  () => { btn.style.opacity = '0.7'; });
     btn.addEventListener('click', e => { e.stopPropagation(); onClick(); });
-    document.body.appendChild(btn);
+    safeZone.appendChild(btn);
   };
 
   makeBtn(
     svgIcon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
-    'Download', 20,
+    'Download', 12,
     () => {
       const canvas = document.querySelector('canvas');
       if (!canvas) return;
@@ -263,7 +281,7 @@
 
   makeBtn(
     svgIcon('<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .87-8.19"/>'),
-    'Reload', 64,
+    'Reload', 56,
     () => window.location.reload()
   );
 
