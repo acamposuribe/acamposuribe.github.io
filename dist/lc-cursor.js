@@ -55,10 +55,10 @@
     [952,504],[904,510],[856,518],[808,522],
   ];
 
-  // Hotspot: leftmost point [361, 250] — where clicks register
-  const HCX = 361, HCY = 250;
-  // Scale to ~48px tall (hand2 bbox height: 561−178 = 383px)
-  const HAND_SCALE = 35 / (561 - 178);
+  // Hotspot: bbox center of the outline — where clicks register
+  const HCX = 873, HCY = 375;
+  // Scale to ~25px tall (hand2 bbox height: 561−178 = 383px)
+  const HAND_SCALE = 25 / (561 - 178);
 
   // ── Canvas sizing ─────────────────────────────────────────────────────────
   const PR = window.devicePixelRatio || 1;
