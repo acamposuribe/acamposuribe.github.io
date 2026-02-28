@@ -76,9 +76,9 @@ const P_HAND_HATCH       = 0.75;         // probability hand gets hatched (when 
 
 // Scattered mode
 const mMult = isMobile ? 1.5 : 1;
-const MAX_HANDS          = 12;           // interior hands drawn
+const MAX_HANDS          = 11;           // interior hands drawn
 const EDGE_HANDS_COUNT   = [0, 4];       // extra hands bleeding off canvas edges (inclusive range)
-const HAND_SCALE_SCATTER = [0.3 * mMult, 0.95 * mMult]; // per-hand scale range (× canvasScale)
+const HAND_SCALE_SCATTER = [0.3 * mMult, 1.1 * mMult]; // per-hand scale range (× canvasScale)
 const RECT_SCALE_W       = [0.33 * mMult, 0.55 * mMult]; // rect width  (fraction of canvas w)
 const RECT_SCALE_H       = [0.33 * mMult, 0.65 * mMult]; // rect height (fraction of canvas h)
 const BLOB_SCALE         = [0.05 * mMult, 0.17 * mMult]; // blob rx/ry  (fraction of canvas w/h)
