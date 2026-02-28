@@ -800,18 +800,30 @@ function poissonSample(n, scales, width, height, maxAttempts = 80) {
   return points;
 }
 
-// Place a hand center very close to a random canvas edge so part of it bleeds off
-function edgeSample(n, scales) {
+// Place a hand center very close to a random canvas edge so part of it bleeds off.
+// Uses best-candidate sampling to keep edge hands spread apart from each other.
+function edgeSample(n, scales, maxAttempts = 60) {
   const points = [];
   for (let i = 0; i < n; i++) {
-    const inset = HAND_RADIUS * scales[i] * brush.random(0.1, 0.55);
-    const edge  = Math.floor(brush.random(4)); // 0=top 1=right 2=bottom 3=left
-    let x, y;
-    if      (edge === 0) { x = brush.random(w * 0.1, w * 0.9); y = inset; }
-    else if (edge === 1) { x = w - inset; y = brush.random(h * 0.1, h * 0.9); }
-    else if (edge === 2) { x = brush.random(w * 0.1, w * 0.9); y = h - inset; }
-    else                 { x = inset;     y = brush.random(h * 0.1, h * 0.9); }
-    points.push([x, y]);
+    let best = null, bestScore = -Infinity;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const inset = HAND_RADIUS * scales[i] * brush.random(0.1, 0.55);
+      const edge  = Math.floor(brush.random(4)); // 0=top 1=right 2=bottom 3=left
+      let x, y;
+      if      (edge === 0) { x = brush.random(w * 0.1, w * 0.9); y = inset; }
+      else if (edge === 1) { x = w - inset; y = brush.random(h * 0.1, h * 0.9); }
+      else if (edge === 2) { x = brush.random(w * 0.1, w * 0.9); y = h - inset; }
+      else                 { x = inset;     y = brush.random(h * 0.1, h * 0.9); }
+      // Score = distance to nearest existing edge hand minus the required gap
+      let score = Infinity;
+      for (let j = 0; j < points.length; j++) {
+        const required = (HAND_RADIUS * scales[i] + HAND_RADIUS * scales[j]) * 1.2;
+        score = Math.min(score, Math.hypot(x - points[j][0], y - points[j][1]) - required);
+      }
+      if (score >= 0) { best = [x, y]; break; }
+      if (score > bestScore) { bestScore = score; best = [x, y]; }
+    }
+    points.push(best);
   }
   return points;
 }
