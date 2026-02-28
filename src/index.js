@@ -15,6 +15,10 @@ if (maxDim < 1800) {
 }
 brush.createCanvas(w, h);
 
+// Generate random alphanumeric 32 character seed
+const Seed = Array.from({ length: 32 }, () => Math.random().toString(36)[2]).join('');
+brush.seed(Seed);
+
 // canvasScale: ratio of physical canvas width to the 3000px reference design.
 // Must use physical pixels (w), not logical (w/pixelRatio), because all drawing
 // operates in physical pixel space. CSS display handles the pixelRatio correction
@@ -33,35 +37,34 @@ const bgPalette = [
   "#fffceb", // ivory (LC)
   "#f5f0e8", // warm paper
   "#f0f5f2", // pale mint
-  "#eef3f7", // pale blue-grey
   "#f8f0ed", // pale blush
+  "#eae4d7", 
 ];
+
+const darkBgPalette = [
+  "#3a3b3b", // 4320E — noir d'ivoire
+  "#403c3a", // 4320J — terre d'ombre brûlée 59
+  "#2f2624",
+]
+
 // LC Polychromie 4320 series (1959) — exact values from lescouleurs.ch
 const palette = [
   "#ac443a", // 4320A — rouge vermillon 59
-  // "#eae4d7", // 4320B — blanc ivoire
   "#dba3af", // 4320C — rose vif
   "#744438", // 4320D — terre sienne brûlée 59
-  // "#3a3b3b", // 4320E — noir d'ivoire
   "#b8a136", // 4320F — vert olive vif
   "#428f70", // 4320G — vert 59
   "#81868b", // 4320H — gris 59
-  // "#403c3a", // 4320J — terre d'ombre brûlée 59
   "#3957a5", // 4320K — bleu outremer 59
   "#dbb07f", // 4320L — ocre jaune clair
   "#74393b", // 4320M — le rubis
   "#7aa7cb", // 4320N — bleu céruléen 59
   // "#92969a", // 4320O — gris clair 59
-  // "#ddbf99", // 4320P — terre sienne claire 59
-  "#45423e", // 4320R — ombre naturelle 59
   "#c45e3a", // 4320S — orange vif
-  "#313d6b", // 4320T — bleu outremer foncé
   // "#60646a", // 4320U — gris foncé 59
   "#f2bb1d", // 4320W — le jaune vif
 ];
 const brushTypes = ["HB", "HB", "2B", "cpencil", "cpencil", "charcoal"];
-
-const bgColor = brush.random(bgPalette);
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 
@@ -90,12 +93,22 @@ const BG_CLUSTER_SIZE = [2, 3];    // number of shapes in the tight cluster [min
 const BG_FREE_COUNT   = [4, 7];    // number of additional scattered shapes  [min, max]
 
 // Background
+const P_DARK_BG     = 0.2;        // probability of dark background (vs light)
 const P_COMPOSED_BG = 0.3;         // probability of composed scene background (vs scatter shapes)
 const SYMBOL_SCALE  = [0.15, 0.35]; // symbol size (fraction of canvas short side)
 const SUN_SCALE_X   = [0.06, 0.13]; // sun rx (fraction of canvas w)
 const SUN_SCALE_Y   = [0.07, 0.15]; // sun ry (fraction of canvas h)
 
 // ─── END CONFIG ──────────────────────────────────────────────────────────────
+
+const bgColor = brush.random(bgPalette);
+const darkBgColor = brush.random(darkBgPalette);
+const isDark = brush.random(1) < P_DARK_BG;
+if (isDark) {
+  palette.push("#eae4d7", "#fffceb", "#395a8e", "#ddbf99")
+} else {
+  palette.push("#45423e", "#313d6b")
+}
 
 // ─── GEOMETRY ──────────────────────────────────────────────────────────────
 // All hand-traced geometry in reference-space coordinates.
@@ -737,13 +750,13 @@ function drawHand(x = hand1CX, y = hand1CY, scale = 1, full = false, { requireFi
   // 1. Fill or erase
   if (doFill || doErase) {
     brush.noStroke();
-    brush.erase(bgColor, 100);
+    brush.erase((isDark && !doFill) ? darkBgColor : bgColor, 100);
     brush.spline(hErase, 0.5);
     brush.noErase();
     brush.draw();
   }
   if (doFill) {
-    brush.fillStyle(fillColor, 100);
+    brush.fillStyle(fillColor, 75);
     brush.fillBleed(brush.random(0.03, 0.1));
     brush.fillTexture(brush.random(0.1, 0.3), 0.15);
     brush.spline(hErase, 0);
@@ -805,8 +818,9 @@ function poissonSample(n, scales, width, height, maxAttempts = 80) {
 }
 
 // Place a hand center very close to a random canvas edge so part of it bleeds off.
-// Uses best-candidate sampling to keep edge hands spread apart from each other.
-function edgeSample(n, scales, maxAttempts = 60) {
+// Uses best-candidate sampling to keep edge hands spread apart from each other
+// and away from already-placed interior hands.
+function edgeSample(n, scales, interiorPts = [], interiorScales = [], maxAttempts = 60) {
   const points = [];
   for (let i = 0; i < n; i++) {
     let best = null, bestScore = -Infinity;
@@ -818,11 +832,16 @@ function edgeSample(n, scales, maxAttempts = 60) {
       else if (edge === 1) { x = w - inset; y = brush.random(h * 0.1, h * 0.9); }
       else if (edge === 2) { x = brush.random(w * 0.1, w * 0.9); y = h - inset; }
       else                 { x = inset;     y = brush.random(h * 0.1, h * 0.9); }
-      // Score = distance to nearest existing edge hand minus the required gap
       let score = Infinity;
+      // Avoid other edge hands
       for (let j = 0; j < points.length; j++) {
         const required = (HAND_RADIUS * scales[i] + HAND_RADIUS * scales[j]) * 1.2;
         score = Math.min(score, Math.hypot(x - points[j][0], y - points[j][1]) - required);
+      }
+      // Avoid interior hands
+      for (let j = 0; j < interiorPts.length; j++) {
+        const required = (HAND_RADIUS * scales[i] + HAND_RADIUS * interiorScales[j]) * 0.7;
+        score = Math.min(score, Math.hypot(x - interiorPts[j][0], y - interiorPts[j][1]) - required);
       }
       if (score >= 0) { best = [x, y]; break; }
       if (score > bestScore) { bestScore = score; best = [x, y]; }
@@ -832,11 +851,12 @@ function edgeSample(n, scales, maxAttempts = 60) {
   return points;
 }
 
-const numEdgeHands = Math.round(brush.random(...EDGE_HANDS_COUNT));
-const handScales   = Array.from({length: MAX_HANDS + numEdgeHands}, () => brush.random(...HAND_SCALE_SCATTER) * canvasScale);
-const positions    = [
-  ...poissonSample(MAX_HANDS, handScales, w, h),
-  ...edgeSample(numEdgeHands, handScales.slice(MAX_HANDS)),
+const numEdgeHands    = Math.round(brush.random(...EDGE_HANDS_COUNT));
+const handScales      = Array.from({length: MAX_HANDS + numEdgeHands}, () => brush.random(...HAND_SCALE_SCATTER) * canvasScale);
+const interiorPositions = poissonSample(MAX_HANDS, handScales, w, h);
+const positions       = [
+  ...interiorPositions,
+  ...edgeSample(numEdgeHands, handScales.slice(MAX_HANDS), interiorPositions, handScales.slice(0, MAX_HANDS)),
 ];
 let handCount = 0;
 
@@ -894,9 +914,6 @@ function drawBackgroundShapes() {
       return [cx + Math.cos(a)*rx*brush.random(0.7,1.3), cy + Math.sin(a)*ry*brush.random(0.7,1.3)];
     })};
   };
-  const makers = [makeRect, makeRect, makeBlob, makeBlob, makeBlob];
-  const randomMaker = () => makers[Math.floor(brush.random(makers.length))];
-
   // --- Build position list ---
   const centers = []; // [cx, cy] for all shapes
 
@@ -929,8 +946,18 @@ function drawBackgroundShapes() {
   }
 
   // --- Pre-build all shapes, then draw rects first, blobs on top ---
-  const allShapes = centers.map(([cx, cy]) => ({
-    shape: randomMaker()(cx, cy),
+  // Guarantee at least 30% of shapes are rects; remainder random (rect or blob)
+  const minRects = Math.ceil(centers.length * 0.30);
+  const shapeTypes = [
+    ...Array(minRects).fill(makeRect),
+    ...Array(centers.length - minRects).fill(null).map(() => brush.random(1) > 0.5 ? makeRect : makeBlob),
+  ];
+  for (let i = shapeTypes.length - 1; i > 0; i--) {
+    const j = Math.floor(brush.random(i + 1));
+    [shapeTypes[i], shapeTypes[j]] = [shapeTypes[j], shapeTypes[i]];
+  }
+  const allShapes = centers.map(([cx, cy], i) => ({
+    shape: shapeTypes[i](cx, cy),
     color: brush.random(shapeColors),
   }));
   // Each symbol appears at most once (~50% chance each)
@@ -966,7 +993,7 @@ function drawBackgroundShapes() {
       drawShape();
       brush.noErase();
       brush.draw();
-      brush.fillStyle(color, 150);
+      brush.fillStyle(color, 250);
       brush.fillBleed(0.05);
       brush.fillTexture(0.1, 0.05);
     } else {
@@ -1130,7 +1157,7 @@ const singleHand = brush.random(1) < P_SINGLE_HAND;
 
 function drawTexture () {
   brush.hatch(300 * canvasScale, Math.PI / 4, { rand: 0.1});
-  brush.hatchStyle("spray", bgColor, 8);
+  brush.hatchStyle("spray", isDark ? darkBgColor : bgColor, 8);
   brush.rect(-w * 0.05, -h * 0.05, w * 1.1, h * 1.1);
   brush.noHatch();
 }
@@ -1139,7 +1166,7 @@ function drawTexture () {
 // DRAW TO CANVAS
 
 // 1. Background color
-brush.background(bgColor);
+brush.background(isDark ? darkBgColor : bgColor);
 
 // 2. Background shapes
 brush.wiggle(1);
@@ -1207,3 +1234,51 @@ document.querySelector('canvas').addEventListener('click', e => {
     (e.clientY - offsetY) / scale,
   ]);
 });
+
+// ── UI Buttons ────────────────────────────────────────────────────────────────
+(function () {
+  const strokeColor = isDark ? 'white' : '#080f15';
+  const shadowColor = isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.2)';
+  const base = `position:fixed;top:20px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;padding:0;opacity:0.7;transition:opacity 0.15s;z-index:9999;filter:drop-shadow(0 1px 4px ${shadowColor});cursor:pointer;`;
+
+  const icon = (paths) =>
+    `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+
+  const makeBtn = (svg, title, left, onClick) => {
+    const btn = document.createElement('button');
+    btn.title = title;
+    btn.style.cssText = `${base}left:${left}px;`;
+    btn.innerHTML = svg;
+    btn.addEventListener('pointerover', () => {
+      btn.style.opacity = '1';
+      window.parent.postMessage({ type: 'lc:cursor-hide' }, '*');
+    });
+    btn.addEventListener('pointerout', () => {
+      btn.style.opacity = '0.7';
+      window.parent.postMessage({ type: 'lc:cursor-show' }, '*');
+    });
+    btn.addEventListener('click', e => { e.stopPropagation(); onClick(); });
+    document.body.appendChild(btn);
+  };
+
+  // Download: saves canvas as PNG
+  makeBtn(
+    icon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
+    'Download',
+    20,
+    () => {
+      const a = document.createElement('a');
+      a.download = `DPA#1_${Seed}.png`;
+      a.href = document.querySelector('canvas').toDataURL('image/png');
+      a.click();
+    }
+  );
+
+  // Reload: reloads this page (or just this iframe if embedded)
+  makeBtn(
+    icon('<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .87-8.19"/>'),
+    'Reload',
+    64,
+    () => window.location.reload()
+  );
+})();

@@ -25,6 +25,9 @@
   const style = document.createElement('style');
   style.textContent = '*, *::before, *::after { cursor: none !important; }';
   document.head.appendChild(style);
+  // Secondary style used to temporarily restore pointer cursor over iframe buttons
+  const cursorOverride = document.createElement('style');
+  document.head.appendChild(cursorOverride);
 
   // Create and mount the overlay canvas
   const cc = document.createElement('canvas');
@@ -99,9 +102,11 @@
   let greeting = null;
   let greetTimerId = null;
   let mouseInWindow = false;
+  let cursorSuppressed = false;
 
   // ── Draw ──────────────────────────────────────────────────────────────────
   function drawCursor() {
+    if (cursorSuppressed) return;
     ctx.clearRect(0, 0, cc.width, cc.height);
 
     // Pivot slightly inside the wrist so the tip swings naturally on click
@@ -214,6 +219,21 @@
   });
   window.addEventListener('resize', () => { resizeCanvas(); drawCursor(); });
 
+  // ── Iframe cursor suppression ─────────────────────────────────────────────
+  // Buttons inside the iframe postMessage here to suppress the hand cursor
+  // while the pointer is hovering them.
+  window.addEventListener('message', e => {
+    if (e.data?.type === 'lc:cursor-hide') {
+      cursorSuppressed = true;
+      ctx.clearRect(0, 0, cc.width, cc.height);
+      cursorOverride.textContent = '*, *::before, *::after { cursor: pointer !important; }';
+    } else if (e.data?.type === 'lc:cursor-show') {
+      cursorSuppressed = false;
+      cursorOverride.textContent = '';
+      drawCursor();
+    }
+  });
+
   // ── Iframe covers ─────────────────────────────────────────────────────────
   // Iframes steal mouse events from the parent document. We place a transparent
   // cover div over each one to intercept mousemove, then briefly disable it on
@@ -231,7 +251,7 @@
     }
     reposition();
 
-    cover.addEventListener('mousemove', e => { mouseInWindow = true; mx = e.clientX; my = e.clientY; drawCursor(); });
+    cover.addEventListener('mousemove', e => { if (cursorSuppressed) return; mouseInWindow = true; mx = e.clientX; my = e.clientY; drawCursor(); });
     cover.addEventListener('mouseleave', () => { ctx.clearRect(0, 0, cc.width, cc.height); });
     cover.addEventListener('mousedown', () => {
       // Let the click pass through to the iframe
