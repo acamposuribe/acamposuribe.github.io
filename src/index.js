@@ -72,7 +72,8 @@ const P_HAND_HATCH       = 0.75;         // probability hand gets hatched (when 
 
 // Scattered mode
 const mMult = isMobile ? 1.5 : 1;
-const MAX_HANDS          = 12;           // total hands drawn
+const MAX_HANDS          = 12;           // interior hands drawn
+const EDGE_HANDS_COUNT   = [0, 4];       // extra hands bleeding off canvas edges (inclusive range)
 const HAND_SCALE_SCATTER = [0.3 * mMult, 0.95 * mMult]; // per-hand scale range (× canvasScale)
 const RECT_SCALE_W       = [0.25 * mMult, 0.60 * mMult]; // rect width  (fraction of canvas w)
 const RECT_SCALE_H       = [0.27 * mMult, 0.65 * mMult]; // rect height (fraction of canvas h)
@@ -799,8 +800,28 @@ function poissonSample(n, scales, width, height, maxAttempts = 80) {
   return points;
 }
 
-const handScales = Array.from({length: MAX_HANDS}, () => brush.random(...HAND_SCALE_SCATTER) * canvasScale);
-const positions = poissonSample(MAX_HANDS, handScales, w, h);
+// Place a hand center very close to a random canvas edge so part of it bleeds off
+function edgeSample(n, scales) {
+  const points = [];
+  for (let i = 0; i < n; i++) {
+    const inset = HAND_RADIUS * scales[i] * brush.random(0.1, 0.55);
+    const edge  = Math.floor(brush.random(4)); // 0=top 1=right 2=bottom 3=left
+    let x, y;
+    if      (edge === 0) { x = brush.random(w * 0.1, w * 0.9); y = inset; }
+    else if (edge === 1) { x = w - inset; y = brush.random(h * 0.1, h * 0.9); }
+    else if (edge === 2) { x = brush.random(w * 0.1, w * 0.9); y = h - inset; }
+    else                 { x = inset;     y = brush.random(h * 0.1, h * 0.9); }
+    points.push([x, y]);
+  }
+  return points;
+}
+
+const numEdgeHands = Math.round(brush.random(...EDGE_HANDS_COUNT));
+const handScales   = Array.from({length: MAX_HANDS + numEdgeHands}, () => brush.random(...HAND_SCALE_SCATTER) * canvasScale);
+const positions    = [
+  ...poissonSample(MAX_HANDS, handScales, w, h),
+  ...edgeSample(numEdgeHands, handScales.slice(MAX_HANDS)),
+];
 let handCount = 0;
 
 // Background polygonal shapes — drawn once, behind all hands
@@ -1143,14 +1164,14 @@ const draw = () => {
       rotationRange: Math.PI / 10,
     });
   } else {
-    if (handCount >= MAX_HANDS) {
+    if (handCount >= positions.length) {
       isDone = true;
       brush.frameRate(10);
       window.dispatchEvent(new CustomEvent('sketch:done'));
       return;
     }
     const [x, y] = positions[handCount];
-    const isLast = handCount === MAX_HANDS - 1;
+    const isLast = handCount === positions.length - 1;
     handCount++;
     drawHand(x, y, handScales[handCount - 1], isLast);
   }
