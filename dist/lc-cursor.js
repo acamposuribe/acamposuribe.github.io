@@ -2,6 +2,24 @@
 (function () {
   if (window.matchMedia('(pointer: coarse)').matches) return;
 
+  // ── Config ────────────────────────────────────────────────────────────────
+  const HAND_SIZE        = 25;       // px tall (approximate)
+  const HAND_Y_STRETCH   = 1.6;      // vertical stretch factor
+  const PIVOT_OFFSET_X   = 22;       // px — pivot point from hotspot X
+  const PIVOT_OFFSET_Y   = 16;       // px — pivot point from hotspot Y
+  const WAVE_AMPLITUDE   = 0.4;      // radians — peak swing of the wave
+  const WAVE_FREQ        = 18;       // rad/s — oscillation speed (~3 swings/s)
+  const WAVE_DECAY       = 5;        // exponential decay rate
+  const OUTLINE_WIDTH    = 1.3;      // px — outer stroke
+  const DETAIL_WIDTH     = 0.65;     // px — interior lines stroke
+  const COLOR_INK        = '#080f15';
+  const GREETINGS        = ['HOLA', 'HELLO', 'BON DIA'];
+  const GREET_R          = 40;       // px — distance from hotspot
+  const GREET_DURATION   = 900;      // ms — how long greeting stays visible
+  const GREET_FONT       = 'bold 13px monospace';
+  const GREET_PAD_X      = 4;        // px — horizontal padding on background rect
+  const GREET_BG_HEIGHT  = 14;       // px — background rect height
+
   function init() {
   // Inject cursor: none on all elements
   const style = document.createElement('style');
@@ -57,8 +75,8 @@
 
   // Hotspot: bbox center of the outline — where clicks register
   const HCX = 873, HCY = 375;
-  // Scale to ~25px tall (hand2 bbox height: 561−178 = 383px)
-  const HAND_SCALE = 25 / (561 - 178);
+  // Scale based on HAND_SIZE (hand2 bbox height: 561−178 = 383px)
+  const HAND_SCALE = HAND_SIZE / (561 - 178);
 
   // ── Canvas sizing ─────────────────────────────────────────────────────────
   const PR = window.devicePixelRatio || 1;
@@ -74,15 +92,19 @@
 
   // ── State ─────────────────────────────────────────────────────────────────
   let mx = -300, my = -300;
-  let rotation = 0, targetRotation = 0;
+  let rotation = 0;
   let rafId = null;
+  let waveStart = null;
+  let greetAngle = 0;
+  let greeting = null;
+  let greetTimerId = null;
 
   // ── Draw ──────────────────────────────────────────────────────────────────
   function drawCursor() {
     ctx.clearRect(0, 0, cc.width, cc.height);
 
     // Pivot slightly inside the wrist so the tip swings naturally on click
-    const pivotX = mx + 22, pivotY = my + 16;
+    const pivotX = mx + PIVOT_OFFSET_X, pivotY = my + PIVOT_OFFSET_Y;
     ctx.save();
     ctx.translate(pivotX, pivotY);
     ctx.rotate(rotation);
@@ -90,7 +112,7 @@
 
     const t = ([px, py]) => [
       mx + (px - HCX) * HAND_SCALE,
-      my + (py - HCY) * HAND_SCALE * 1.6,
+      my + (py - HCY) * HAND_SCALE * HAND_Y_STRETCH,
     ];
 
     // White background — fill erase shape before outline
@@ -112,12 +134,12 @@
       ctx.quadraticCurveTo(ax, ay, (ax + bx) / 2, (ay + by) / 2);
     }
     ctx.closePath();
-    ctx.strokeStyle = '#080f15';
-    ctx.lineWidth = 1.3;
+    ctx.strokeStyle = COLOR_INK;
+    ctx.lineWidth = OUTLINE_WIDTH;
     ctx.stroke();
 
     // Interior detail lines
-    ctx.lineWidth = 0.65;
+    ctx.lineWidth = DETAIL_WIDTH;
     for (const line of DETAILS) {
       const dpts = line.map(t);
       ctx.beginPath();
@@ -127,29 +149,63 @@
     }
 
     ctx.restore();
-  }
 
-  // ── Click animation ───────────────────────────────────────────────────────
-  function animate() {
-    rotation += (targetRotation - rotation) * 0.16;
-    drawCursor();
-    if (Math.abs(targetRotation - rotation) > 0.001) {
-      rafId = requestAnimationFrame(animate);
-    } else {
-      rotation = targetRotation;
-      drawCursor();
-      rafId = null;
+    // Greeting text — outside the tilt transform so it stays upright
+    if (greeting) {
+      const tx = mx + GREET_R * Math.cos(greetAngle);
+      const ty = my + GREET_R * Math.sin(greetAngle);
+      // Perpendicular to radius; flip 180° when text would be upside-down (below hotspot)
+      const textRot = greetAngle + Math.PI / 2 + (Math.sin(greetAngle) > 0 ? Math.PI : 0);
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.rotate(textRot);
+      ctx.font = GREET_FONT;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const m = ctx.measureText(greeting);
+      // Visual glyph center (offset from em-square midpoint used by textBaseline=middle)
+      const glyphMidY = (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2;
+      ctx.fillStyle = 'white';
+      ctx.fillRect(-m.width / 2 - GREET_PAD_X, glyphMidY - GREET_BG_HEIGHT / 2, m.width + GREET_PAD_X * 2, GREET_BG_HEIGHT);
+      ctx.fillStyle = COLOR_INK;
+      ctx.fillText(greeting, 0, 0);
+      ctx.restore();
     }
   }
 
-  function startAnim() {
+  // ── Wave animation ────────────────────────────────────────────────────────
+  function animate() {
+    const t = (performance.now() - waveStart) / 1000;
+    const amp = WAVE_AMPLITUDE * Math.exp(-WAVE_DECAY * t);
+    rotation = amp * Math.sin(WAVE_FREQ * t);
+    drawCursor();
+    if (amp > 0.002) {
+      rafId = requestAnimationFrame(animate);
+    } else {
+      rotation = 0;
+      drawCursor();
+      rafId = null;
+      waveStart = null;
+    }
+  }
+
+  function startWave() {
+    waveStart = performance.now();
     if (!rafId) rafId = requestAnimationFrame(animate);
   }
 
   // ── Events ────────────────────────────────────────────────────────────────
   document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; drawCursor(); }, true);
-  document.addEventListener('mousedown', () => { targetRotation = -0.32; startAnim(); });
-  document.addEventListener('mouseup',   () => { targetRotation = 0;     startAnim(); });
+  document.addEventListener('mousedown', () => {
+    greeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+    greetAngle = Math.random() * Math.PI * 2;
+    if (greetTimerId) { clearTimeout(greetTimerId); greetTimerId = null; }
+    startWave();
+  });
+  document.addEventListener('mouseup', () => {
+    if (greetTimerId) clearTimeout(greetTimerId);
+    greetTimerId = setTimeout(() => { greeting = null; greetTimerId = null; drawCursor(); }, GREET_DURATION);
+  });
   document.addEventListener('mouseleave', () => { ctx.clearRect(0, 0, cc.width, cc.height); });
   window.addEventListener('resize', () => { resizeCanvas(); drawCursor(); });
 
@@ -176,9 +232,9 @@
       // Let the click pass through to the iframe
       cover.style.pointerEvents = 'none';
       setTimeout(() => { cover.style.pointerEvents = 'all'; }, 120);
-      targetRotation = -0.32; startAnim();
+      startWave();
     });
-    cover.addEventListener('mouseup', () => { targetRotation = 0; startAnim(); });
+    cover.addEventListener('mouseup', () => {});
 
     document.body.appendChild(cover);
 
