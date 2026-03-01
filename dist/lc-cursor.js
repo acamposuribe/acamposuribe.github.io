@@ -29,9 +29,14 @@
   const cursorOverride = document.createElement('style');
   document.head.appendChild(cursorOverride);
 
-  // Create and mount the overlay canvas
+  // Small fixed-size cursor canvas. Position is driven by CSS transform on every
+  // mousemove — the GPU compositor handles it without touching JS paint/composite.
+  const CANVAS_SIZE = 200; // CSS px — covers hand (72×40px) + greeting (±69px) + wave rotation
+  const CH = 100, CV = 100; // hotspot position within the small canvas
+
   const cc = document.createElement('canvas');
-  cc.style.cssText = 'position:fixed;top:0;left:0;pointer-events:none;z-index:2147483647;';
+  cc.className = 'lc-cursor';
+  cc.style.cssText = 'position:fixed;top:0;left:0;width:200px;height:200px;pointer-events:none;z-index:2147483647;will-change:transform;transform:translate(-300px,-300px);';
   document.body.appendChild(cc);
   const ctx = cc.getContext('2d');
 
@@ -84,14 +89,12 @@
   // ── Canvas sizing ─────────────────────────────────────────────────────────
   const PR = window.devicePixelRatio || 1;
 
-  function resizeCanvas() {
-    cc.width  = window.innerWidth  * PR;
-    cc.height = window.innerHeight * PR;
-    cc.style.width  = window.innerWidth  + 'px';
-    cc.style.height = window.innerHeight + 'px';
-    ctx.scale(PR, PR);
+  function initCanvas() {
+    cc.width  = CANVAS_SIZE * PR;
+    cc.height = CANVAS_SIZE * PR;
+    ctx.setTransform(PR, 0, 0, PR, 0, 0); // reset + scale (avoids compounding on re-init)
   }
-  resizeCanvas();
+  initCanvas();
 
   // ── State ─────────────────────────────────────────────────────────────────
   let mx = -300, my = -300;
@@ -103,32 +106,22 @@
   let greetTimerId = null;
   let mouseInWindow = false;
   let cursorSuppressed = false;
-  let drawScheduled = false;
 
   // ── Draw ──────────────────────────────────────────────────────────────────
-  // Throttle mouse-driven redraws to one per animation frame.
-  // The wave animation's own rAF loop calls drawCursor() directly, so we skip
-  // scheduling when it's already running to avoid double-draws.
-  function scheduleDraw() {
-    if (drawScheduled || rafId) return;
-    drawScheduled = true;
-    requestAnimationFrame(() => { drawScheduled = false; drawCursor(); });
-  }
-
   function drawCursor() {
     if (cursorSuppressed) return;
-    ctx.clearRect(0, 0, cc.width, cc.height);
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
     // Pivot slightly inside the wrist so the tip swings naturally on click
-    const pivotX = mx + PIVOT_OFFSET_X, pivotY = my + PIVOT_OFFSET_Y;
+    const pivotX = CH + PIVOT_OFFSET_X, pivotY = CV + PIVOT_OFFSET_Y;
     ctx.save();
     ctx.translate(pivotX, pivotY);
     ctx.rotate(rotation);
     ctx.translate(-pivotX, -pivotY);
 
     const t = ([px, py]) => [
-      mx + (px - HCX) * HAND_SCALE,
-      my + (py - HCY) * HAND_SCALE * HAND_Y_STRETCH,
+      CH + (px - HCX) * HAND_SCALE,
+      CV + (py - HCY) * HAND_SCALE * HAND_Y_STRETCH,
     ];
 
     // White background — fill erase shape before outline
@@ -168,8 +161,8 @@
 
     // Greeting text — outside the tilt transform so it stays upright
     if (greeting) {
-      const tx = mx + GREET_R * Math.cos(greetAngle);
-      const ty = my + GREET_R * Math.sin(greetAngle);
+      const tx = CH + GREET_R * Math.cos(greetAngle);
+      const ty = CV + GREET_R * Math.sin(greetAngle);
       // Perpendicular to radius; flip 180° when text would be upside-down (below hotspot)
       const textRot = greetAngle + Math.PI / 2 + (Math.sin(greetAngle) > 0 ? Math.PI : 0);
       ctx.save();
@@ -214,7 +207,10 @@
   document.addEventListener('mousemove', e => {
     const entering = !mouseInWindow;
     mouseInWindow = true; mx = e.clientX; my = e.clientY;
-    entering ? drawCursor() : scheduleDraw();
+    if (!cursorSuppressed) {
+      cc.style.transform = `translate(${mx - CH}px,${my - CV}px)`;
+      if (entering) drawCursor();
+    }
   }, true);
   document.addEventListener('mousedown', () => {
     greeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
@@ -226,12 +222,16 @@
     if (greetTimerId) clearTimeout(greetTimerId);
     greetTimerId = setTimeout(() => { greeting = null; greetTimerId = null; drawCursor(); }, GREET_DURATION);
   });
-  document.addEventListener('mouseleave', () => {
+  // Both mouseleave (same-origin / direct page) and blur (cross-origin iframe —
+  // mouseleave doesn't fire when mouse moves to a cross-origin parent frame) reset state.
+  function onExit() {
     mouseInWindow = false;
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; waveStart = null; rotation = 0; }
-    ctx.clearRect(0, 0, cc.width, cc.height);
-  });
-  window.addEventListener('resize', () => { resizeCanvas(); drawCursor(); });
+    cc.style.transform = 'translate(-300px,-300px)';
+  }
+  document.addEventListener('mouseleave', onExit);
+  window.addEventListener('blur', onExit);
+  window.addEventListener('resize', () => { initCanvas(); if (mouseInWindow) drawCursor(); });
 
   // ── Sketch buttons (download / reload) ───────────────────────────────────
   // A safe zone div wraps both buttons. Cursor suppression is managed on the
@@ -246,12 +246,13 @@
   safeZone.style.cssText = 'position:fixed;top:8px;left:8px;width:90px;height:46px;z-index:2147483646;';
   safeZone.addEventListener('pointerenter', () => {
     cursorSuppressed = true;
-    ctx.clearRect(0, 0, cc.width, cc.height);
+    cc.style.transform = 'translate(-300px,-300px)';
     cursorOverride.textContent = '*, *::before, *::after { cursor: pointer !important; }';
   });
   safeZone.addEventListener('pointerleave', () => {
     cursorSuppressed = false;
     cursorOverride.textContent = '';
+    cc.style.transform = `translate(${mx - CH}px,${my - CV}px)`;
     drawCursor();
   });
   document.body.appendChild(safeZone);
@@ -306,8 +307,8 @@
     }
     reposition();
 
-    cover.addEventListener('mousemove', e => { if (cursorSuppressed) return; mouseInWindow = true; mx = e.clientX; my = e.clientY; drawCursor(); });
-    cover.addEventListener('mouseleave', () => { ctx.clearRect(0, 0, cc.width, cc.height); });
+    cover.addEventListener('mousemove', e => { if (cursorSuppressed) return; mouseInWindow = true; mx = e.clientX; my = e.clientY; cc.style.transform = `translate(${mx - CH}px,${my - CV}px)`; });
+    cover.addEventListener('mouseleave', () => { cc.style.transform = 'translate(-300px,-300px)'; });
     cover.addEventListener('mousedown', () => {
       cover.style.pointerEvents = 'none';
       setTimeout(() => { cover.style.pointerEvents = 'all'; }, 120);

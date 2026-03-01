@@ -33,13 +33,15 @@ const config = {
     <style>
         *, *::before, *::after { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
-        canvas {
+        canvas:not(.lc-cursor) {
           display: block !important;
           width: 100vw !important;
           height: 100vh !important;
           max-width: none !important;
           max-height: none !important;
           object-fit: cover !important;
+          transform: translateZ(0);
+          pointer-events: none;
         }
     </style>
   </head>

@@ -1226,7 +1226,7 @@ brush.frameRate(isMobile ? 1 : 8);
 brush.loop(draw);
 
 // Click-to-add: map CSS-pixel coords to canvas physical-pixel coords (object-fit: cover).
-document.querySelector('canvas').addEventListener('click', e => {
+document.addEventListener('click', e => {
   if (!isDone) return;
   const scale   = Math.max(window.innerWidth / w, window.innerHeight / h);
   const offsetX = (window.innerWidth  - w * scale) / 2;
